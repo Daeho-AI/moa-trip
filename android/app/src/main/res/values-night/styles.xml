@@ -1,0 +1,1 @@
+<resources><style name="Theme.MoaTrip" parent="android:style/Theme.Material.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">false</item><item name="android:colorAccent">#E4E5E8</item><item name="android:windowBackground">#1D1E20</item></style></resources>

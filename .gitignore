@@ -1,0 +1,17 @@
+work/
+outputs/
+android/.gradle/
+android/local.properties
+**/build/
+**/__pycache__/
+.pytest_cache/
+.venv/
+*.db
+*.db-wal
+*.db-shm
+*.keystore
+*.jks
+.env
+AGENTS.md
+*.log
+*.hprof

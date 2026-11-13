@@ -1,0 +1,112 @@
+{
+  "designVersion": "0.4.0",
+  "product": "MoaTrip",
+  "status": "CORE_IMPLEMENTED_EXTENSIONS_PLANNED",
+  "verifiedOn": "2026-11-13",
+  "room": {
+    "maxVehicles": 5,
+    "durationHoursOptions": [
+      12,
+      24,
+      72
+    ],
+    "defaultDurationHours": 24,
+    "inviteCodeLength": 8,
+    "inviteTtlSec": 1800,
+    "automaticHostTransfer": false,
+    "maxActiveRoomsPerVehicle": 1,
+    "expiryWarningSec": 900,
+    "extendSharingGrantsAutomatically": false,
+    "memberFinishClosesRoom": false,
+    "roomInviteReusableWithinCapacity": true
+  },
+  "sharing": {
+    "positionDefault": false,
+    "etaDefault": false,
+    "destinationFollowDefault": false,
+    "sharedStopFollowDefault": false,
+    "grantBoundToHostEpoch": true,
+    "keepRawTravelHistory": false,
+    "movingUploadMinMs": 2000,
+    "movingUploadHeartbeatMs": 5000,
+    "stationaryUploadHeartbeatMs": 10000,
+    "positionStaleAfterMs": 15000,
+    "positionHideAfterMs": 60000,
+    "etaStaleAfterMs": 15000,
+    "blanketGrantCanWriteDestination": false
+  },
+  "navigation": {
+    "maxActiveWaypoints": 2,
+    "leaderChangeDebounceMs": 2000,
+    "applyTimeoutMs": 15000,
+    "preservePersonalWaypoints": true,
+    "preserveLocalRouteOption": true,
+    "pauseFollowingOnLocalChange": true,
+    "forceWriteRetry": false,
+    "requireReadbackForApplied": true,
+    "sharedStopFollowRequiresDestinationFollow": true,
+    "newEnRouteStopRequiresVehicleChoice": true,
+    "restoreCompletedVisits": false,
+    "waypointOrderRequiresExplicitMergeWithPersonalStops": true,
+    "routeOptionChangePausesFollowing": false,
+    "writeAfterUncertainTimeout": false,
+    "initialAndLateJoinUseSnapshot": true,
+    "leaderBroadcastCanPause": true,
+    "routeEndClearsSharedDestination": false,
+    "leaderConfirmationEveryChange": true,
+    "recipientConfirmationEveryChange": true,
+    "rejectStaleProposalConfirmation": true,
+    "approvalBoundToRoomEpochRevisionAndNativeRoute": true,
+    "replayAcceptedDecisionOnReconnect": false,
+    "declinePersists": true,
+    "backgroundNotificationOpensConfirmation": true
+  },
+  "assembly": {
+    "requireFullParticipantCoverage": true,
+    "pendingStopChoiceBlocksCompleteSummary": true,
+    "arrivedRequiresFreshPresence": true,
+    "readinessExpiresSec": 600,
+    "stableVehicleListOrder": true
+  },
+  "messages": {
+    "senderCooldownSec": 10,
+    "roomBurstLimitPerMinute": 20,
+    "messageTtlSec": 1800,
+    "displayIncomingAnimationWhileDriving": false,
+    "reactionTtsDefault": false,
+    "restRequestTtlSec": 600,
+    "restRequestsCountUniqueVehicles": true,
+    "speakOtherVehicleSyncSuccess": false
+  },
+  "pickup": {
+    "maxActivePerVehicle": 1,
+    "maxAlternativeCandidates": 6,
+    "shownCandidates": 3,
+    "defaultMaxWalkSec": 180,
+    "maxWalkSecOptions": [
+      0,
+      180,
+      300,
+      600
+    ],
+    "defaultBoardingSec": 60,
+    "maxDriverWaitSec": 120,
+    "minSavingSec": 120,
+    "minSavingPerWalkSecond": 1.0,
+    "zeroWalkDisablesAlternativeSuggestions": true,
+    "lockMeetingPlaceAfterDriverConfirmation": true,
+    "walkingPromptRequiresNativeAppliedAndFresh": true,
+    "automaticCandidateQueriesOnGpsChange": false,
+    "passengerReceivesRawVehiclePosition": false,
+    "roomReceivesPassengerPosition": false,
+    "resultFreshForSec": 90,
+    "initialMaxHttpAttempts": 24,
+    "finalRecheckMaxHttpAttempts": 8,
+    "dailyRoutingAttemptBudget": 300,
+    "providerKeyRequiredInLiveMode": true
+  },
+  "publish": {
+    "githubRepositoryCreated": false,
+    "videoAfterAppCompletion": true
+  }
+}

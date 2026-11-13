@@ -1,0 +1,201 @@
+{
+  "description": "설계 계산용 가상 수치. 실제 도로·SDK·TMAP 호출 결과가 아님.",
+  "cases": [
+    {
+      "id": "walk-three-minutes",
+      "readySec": 0,
+      "boardingSec": 60,
+      "maxWalkSec": 180,
+      "maxDriverWaitSec": 120,
+      "minSavingSec": 120,
+      "baseline": {
+        "id": "original",
+        "driveBeforeSec": 600,
+        "walkSec": 0,
+        "driveAfterSec": 1200,
+        "verifiedMeetingPoint": true
+      },
+      "candidates": [
+        {
+          "id": "A",
+          "driveBeforeSec": 300,
+          "walkSec": 180,
+          "driveAfterSec": 1020,
+          "verifiedMeetingPoint": true
+        },
+        {
+          "id": "B",
+          "driveBeforeSec": 120,
+          "walkSec": 240,
+          "driveAfterSec": 960,
+          "verifiedMeetingPoint": true
+        },
+        {
+          "id": "C",
+          "driveBeforeSec": 400,
+          "walkSec": 120,
+          "driveAfterSec": 1100,
+          "verifiedMeetingPoint": true
+        },
+        {
+          "id": "D",
+          "driveBeforeSec": 120,
+          "walkSec": 120,
+          "driveAfterSec": 1500,
+          "verifiedMeetingPoint": true
+        },
+        {
+          "id": "E",
+          "driveBeforeSec": 120,
+          "walkSec": 60,
+          "driveAfterSec": 600,
+          "verifiedMeetingPoint": false
+        },
+        {
+          "id": "F",
+          "driveBeforeSec": 30,
+          "walkSec": 180,
+          "driveAfterSec": 800,
+          "verifiedMeetingPoint": true
+        }
+      ],
+      "expectedBaselineSec": 1860,
+      "expectedTopThree": [
+        "A",
+        "C",
+        "D"
+      ],
+      "expectedBestSavingSec": 480
+    },
+    {
+      "id": "walk-five-minutes",
+      "copyCandidatesFrom": "walk-three-minutes",
+      "readySec": 0,
+      "boardingSec": 60,
+      "maxWalkSec": 300,
+      "maxDriverWaitSec": 120,
+      "minSavingSec": 120,
+      "expectedBaselineSec": 1860,
+      "expectedTopThree": [
+        "B",
+        "A",
+        "C"
+      ],
+      "expectedBestSavingSec": 600
+    },
+    {
+      "id": "wait-is-not-counted-twice",
+      "readySec": 120,
+      "boardingSec": 60,
+      "maxWalkSec": 180,
+      "maxDriverWaitSec": 240,
+      "minSavingSec": 120,
+      "baseline": {
+        "id": "original",
+        "driveBeforeSec": 240,
+        "walkSec": 0,
+        "driveAfterSec": 720,
+        "verifiedMeetingPoint": true
+      },
+      "candidates": [
+        {
+          "id": "G",
+          "driveBeforeSec": 60,
+          "walkSec": 120,
+          "driveAfterSec": 600,
+          "verifiedMeetingPoint": true
+        }
+      ],
+      "expectedBaselineSec": 1020,
+      "expectedTopThree": [
+        "G"
+      ],
+      "expectedBestSavingSec": 120,
+      "expectedBestTotalSec": 900
+    },
+    {
+      "id": "walking-burden-exceeds-saving",
+      "readySec": 0,
+      "boardingSec": 60,
+      "maxWalkSec": 300,
+      "maxDriverWaitSec": 120,
+      "minSavingSec": 120,
+      "baseline": {
+        "id": "original",
+        "driveBeforeSec": 600,
+        "walkSec": 0,
+        "driveAfterSec": 1200,
+        "verifiedMeetingPoint": true
+      },
+      "candidates": [
+        {
+          "id": "L",
+          "driveBeforeSec": 300,
+          "walkSec": 300,
+          "driveAfterSec": 1380,
+          "verifiedMeetingPoint": true
+        }
+      ],
+      "expectedBaselineSec": 1860,
+      "expectedTopThree": []
+    },
+    {
+      "id": "zero-walk-keeps-original-even-with-zero-walk-alternative",
+      "readySec": 0,
+      "boardingSec": 60,
+      "maxWalkSec": 0,
+      "maxDriverWaitSec": 120,
+      "minSavingSec": 120,
+      "baseline": {
+        "id": "original",
+        "driveBeforeSec": 600,
+        "walkSec": 0,
+        "driveAfterSec": 1200,
+        "verifiedMeetingPoint": true
+      },
+      "candidates": [
+        {
+          "id": "Z",
+          "driveBeforeSec": 300,
+          "walkSec": 0,
+          "driveAfterSec": 900,
+          "verifiedMeetingPoint": true
+        }
+      ],
+      "expectedBaselineSec": 1860,
+      "expectedTopThree": []
+    },
+    {
+      "id": "wait-before-leaving-instead-of-at-roadside",
+      "readySec": 0,
+      "boardingSec": 60,
+      "maxWalkSec": 180,
+      "maxDriverWaitSec": 120,
+      "minSavingSec": 120,
+      "baseline": {
+        "id": "original",
+        "driveBeforeSec": 1200,
+        "walkSec": 0,
+        "driveAfterSec": 600,
+        "verifiedMeetingPoint": true
+      },
+      "candidates": [
+        {
+          "id": "H",
+          "driveBeforeSec": 900,
+          "walkSec": 180,
+          "driveAfterSec": 600,
+          "verifiedMeetingPoint": true
+        }
+      ],
+      "expectedBaselineSec": 1860,
+      "expectedTopThree": [
+        "H"
+      ],
+      "expectedBestSavingSec": 300,
+      "expectedWalkStartAfterSec": 720,
+      "expectedPassengerWaitIfLeavingWhenReadySec": 720,
+      "expectedPassengerWaitAtSuggestedStartSec": 0
+    }
+  ]
+}

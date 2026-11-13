@@ -1,0 +1,571 @@
+{
+  "description": "v0.2 사용 상황의 설계 모델 검증용 입력·기대 결과. SDK/앱/서버 실행 테스트가 아님.",
+  "cases": [
+    {
+      "id": "completed-stop-stays-completed-after-reconnect",
+      "kind": "route_merge",
+      "input": {
+        "personal": [
+          {
+            "ref": "pickup#1"
+          }
+        ],
+        "common": [
+          {
+            "ref": "rest#1",
+            "choice": "GO",
+            "completed": true
+          }
+        ],
+        "approvedOrder": [
+          "rest#1",
+          "pickup#1"
+        ]
+      },
+      "expected": {
+        "state": "READY",
+        "waypoints": [
+          "pickup#1"
+        ]
+      }
+    },
+    {
+      "id": "second-visit-is-not-the-completed-first-visit",
+      "kind": "route_merge",
+      "input": {
+        "common": [
+          {
+            "ref": "rest#1",
+            "choice": "GO",
+            "completed": true
+          },
+          {
+            "ref": "rest#2",
+            "choice": "GO"
+          }
+        ]
+      },
+      "expected": {
+        "state": "READY",
+        "waypoints": [
+          "rest#2"
+        ]
+      }
+    },
+    {
+      "id": "do-not-guess-pickup-versus-rest-order",
+      "kind": "route_merge",
+      "input": {
+        "personal": [
+          {
+            "ref": "pickup#1"
+          }
+        ],
+        "common": [
+          {
+            "ref": "rest#1",
+            "choice": "GO"
+          }
+        ]
+      },
+      "expected": {
+        "state": "ORDER_REVIEW",
+        "waypoints": []
+      }
+    },
+    {
+      "id": "preserve-explicit-pickup-before-rest",
+      "kind": "route_merge",
+      "input": {
+        "personal": [
+          {
+            "ref": "pickup#1"
+          }
+        ],
+        "common": [
+          {
+            "ref": "rest#1",
+            "choice": "GO"
+          }
+        ],
+        "approvedOrder": [
+          "pickup#1",
+          "rest#1"
+        ]
+      },
+      "expected": {
+        "state": "READY",
+        "waypoints": [
+          "pickup#1",
+          "rest#1"
+        ]
+      }
+    },
+    {
+      "id": "pending-or-skipped-stop-is-not-a-route-write",
+      "kind": "route_merge",
+      "input": {
+        "personal": [
+          {
+            "ref": "pickup#1"
+          }
+        ],
+        "common": [
+          {
+            "ref": "rest#1",
+            "choice": "PENDING"
+          },
+          {
+            "ref": "rest#2",
+            "choice": "SKIP"
+          }
+        ]
+      },
+      "expected": {
+        "state": "READY",
+        "waypoints": [
+          "pickup#1"
+        ]
+      }
+    },
+    {
+      "id": "capacity-never-deletes-a-personal-stop",
+      "kind": "route_merge",
+      "input": {
+        "personal": [
+          {
+            "ref": "pickup#1"
+          },
+          {
+            "ref": "personal#2"
+          }
+        ],
+        "common": [
+          {
+            "ref": "rest#1",
+            "choice": "GO"
+          }
+        ]
+      },
+      "expected": {
+        "state": "CAPACITY_CONFLICT",
+        "waypoints": []
+      }
+    },
+    {
+      "id": "ambiguous-arrival-does-not-rewrite-route",
+      "kind": "route_merge",
+      "input": {
+        "progressUncertain": true,
+        "common": [
+          {
+            "ref": "rest#1",
+            "choice": "GO"
+          }
+        ]
+      },
+      "expected": {
+        "state": "PROGRESS_UNCERTAIN",
+        "waypoints": []
+      }
+    },
+    {
+      "id": "two-of-three-is-not-full-assembly",
+      "kind": "assembly",
+      "input": {
+        "target": "rest#1",
+        "nowSec": 1000,
+        "members": [
+          {
+            "id": "A",
+            "choice": "GO",
+            "target": "rest#1",
+            "applied": true,
+            "ageSec": 2,
+            "etaAtSec": 1100
+          },
+          {
+            "id": "B",
+            "choice": "GO",
+            "target": "rest#1",
+            "applied": true,
+            "ageSec": 3,
+            "etaAtSec": 1150
+          },
+          {
+            "id": "C",
+            "choice": "GO"
+          }
+        ]
+      },
+      "expected": {
+        "state": "PARTIAL",
+        "expected": 3,
+        "known": 2,
+        "pending": 0,
+        "missing": [
+          "C"
+        ],
+        "latestKnownArrivalSec": 1150,
+        "allReady": false
+      }
+    },
+    {
+      "id": "confirmed-skip-is-excluded-from-this-rest",
+      "kind": "assembly",
+      "input": {
+        "target": "rest#1",
+        "nowSec": 1000,
+        "members": [
+          {
+            "id": "A",
+            "choice": "GO",
+            "target": "rest#1",
+            "applied": true,
+            "ageSec": 2,
+            "etaAtSec": 1100
+          },
+          {
+            "id": "B",
+            "choice": "SKIP"
+          }
+        ]
+      },
+      "expected": {
+        "state": "COMPLETE",
+        "expected": 1,
+        "known": 1,
+        "pending": 0,
+        "missing": [],
+        "latestKnownArrivalSec": 1100,
+        "allReady": false
+      }
+    },
+    {
+      "id": "pending-vehicle-blocks-everyone-summary",
+      "kind": "assembly",
+      "input": {
+        "target": "rest#1",
+        "nowSec": 1000,
+        "members": [
+          {
+            "id": "A",
+            "choice": "GO",
+            "arrived": true,
+            "presenceFresh": true,
+            "ready": true,
+            "readyAgeSec": 20,
+            "arrivedVisit": "rest#1"
+          },
+          {
+            "id": "B",
+            "choice": "PENDING"
+          }
+        ]
+      },
+      "expected": {
+        "state": "PARTIAL",
+        "expected": 1,
+        "known": 1,
+        "pending": 1,
+        "missing": [],
+        "latestKnownArrivalSec": 1000,
+        "allReady": false
+      }
+    },
+    {
+      "id": "stale-and-other-destination-stay-missing",
+      "kind": "assembly",
+      "input": {
+        "target": "rest#1",
+        "nowSec": 1000,
+        "members": [
+          {
+            "id": "A",
+            "choice": "GO",
+            "target": "rest#1",
+            "applied": true,
+            "ageSec": 20,
+            "etaAtSec": 1100
+          },
+          {
+            "id": "B",
+            "choice": "GO",
+            "target": "final#1",
+            "applied": true,
+            "ageSec": 2,
+            "etaAtSec": 1150
+          }
+        ]
+      },
+      "expected": {
+        "state": "UNKNOWN",
+        "expected": 2,
+        "known": 0,
+        "pending": 0,
+        "missing": [
+          "A",
+          "B"
+        ],
+        "latestKnownArrivalSec": null,
+        "allReady": false
+      }
+    },
+    {
+      "id": "all-arrived-and-recently-ready",
+      "kind": "assembly",
+      "input": {
+        "target": "rest#1",
+        "nowSec": 1000,
+        "members": [
+          {
+            "id": "A",
+            "choice": "GO",
+            "arrived": true,
+            "presenceFresh": true,
+            "ready": true,
+            "readyAgeSec": 20,
+            "arrivedVisit": "rest#1"
+          },
+          {
+            "id": "B",
+            "choice": "GO",
+            "arrived": true,
+            "presenceFresh": true,
+            "ready": true,
+            "readyAgeSec": 100,
+            "arrivedVisit": "rest#1"
+          }
+        ]
+      },
+      "expected": {
+        "state": "ALL_ARRIVED",
+        "expected": 2,
+        "known": 2,
+        "pending": 0,
+        "missing": [],
+        "latestKnownArrivalSec": 1000,
+        "allReady": true
+      }
+    },
+    {
+      "id": "readiness-expires-even-with-fresh-location",
+      "kind": "assembly",
+      "input": {
+        "target": "rest#1",
+        "nowSec": 1000,
+        "members": [
+          {
+            "id": "A",
+            "choice": "GO",
+            "arrived": true,
+            "presenceFresh": true,
+            "ready": true,
+            "readyAgeSec": 601,
+            "arrivedVisit": "rest#1"
+          }
+        ]
+      },
+      "expected": {
+        "state": "ALL_ARRIVED",
+        "expected": 1,
+        "known": 1,
+        "pending": 0,
+        "missing": [],
+        "latestKnownArrivalSec": 1000,
+        "allReady": false
+      }
+    },
+    {
+      "id": "waypoint-permission-cannot-replace-private-destination",
+      "kind": "navigation_gate",
+      "input": {
+        "sharedStopFollow": true,
+        "destinationFollow": false
+      },
+      "expected": "INVALID_GRANT"
+    },
+    {
+      "id": "timed-out-write-blocks-newer-write",
+      "kind": "navigation_gate",
+      "input": {
+        "destinationFollow": true,
+        "previousWriteUncertain": true
+      },
+      "expected": "WRITE_UNCERTAIN"
+    },
+    {
+      "id": "manual-retry-does-not-clear-old-request",
+      "kind": "navigation_gate",
+      "input": {
+        "oneTimeApply": true,
+        "previousWriteUncertain": true
+      },
+      "expected": "WRITE_UNCERTAIN"
+    },
+    {
+      "id": "new-en-route-stop-is-not-blanket-consent",
+      "kind": "navigation_gate",
+      "input": {
+        "destinationFollow": true,
+        "sharedStopFollow": true,
+        "newEnRouteStop": true,
+        "stopChoice": "PENDING",
+        "uxAllowsWrite": true
+      },
+      "expected": "STOP_DECISION_REQUIRED"
+    },
+    {
+      "id": "agreed-destination-auto-follow-remains",
+      "kind": "navigation_gate",
+      "input": {
+        "destinationFollow": true,
+        "uxAllowsWrite": true
+      },
+      "expected": "ALLOW"
+    },
+    {
+      "id": "do-not-walk-on-api-request-return",
+      "kind": "pickup",
+      "input": {
+        "phase": "APPLYING",
+        "nativeState": "APPLYING",
+        "vehicleFresh": true,
+        "matchesCommittedPlace": true
+      },
+      "expected": {
+        "place": "KEEP_COMMITTED",
+        "recommendation": "OFF",
+        "walkingPrompt": "HOLD"
+      }
+    },
+    {
+      "id": "passenger-walking-does-not-move-meeting-point",
+      "kind": "pickup",
+      "input": {
+        "phase": "MEETING",
+        "passengerMovedM": 100,
+        "resultAgeSec": 180,
+        "planChanged": true,
+        "nativeState": "APPLIED",
+        "vehicleFresh": true,
+        "matchesCommittedPlace": true
+      },
+      "expected": {
+        "place": "KEEP_COMMITTED",
+        "recommendation": "OFF",
+        "walkingPrompt": "SCHEDULED"
+      }
+    },
+    {
+      "id": "other-place-application-cannot-start-walking",
+      "kind": "pickup",
+      "input": {
+        "phase": "APPLIED",
+        "nativeState": "APPLIED",
+        "vehicleFresh": true,
+        "matchesCommittedPlace": false
+      },
+      "expected": {
+        "place": "KEEP_COMMITTED",
+        "recommendation": "OFF",
+        "walkingPrompt": "HOLD"
+      }
+    },
+    {
+      "id": "stale-vehicle-status-holds-start-prompt",
+      "kind": "pickup",
+      "input": {
+        "phase": "APPLIED",
+        "nativeState": "APPLIED",
+        "vehicleFresh": false,
+        "matchesCommittedPlace": true
+      },
+      "expected": {
+        "place": "KEEP_COMMITTED",
+        "recommendation": "OFF",
+        "walkingPrompt": "HOLD"
+      }
+    },
+    {
+      "id": "unconfirmed-moving-input-invalidates-without-query-storm",
+      "kind": "pickup",
+      "input": {
+        "phase": "OPTIONS_READY",
+        "passengerMovedM": 60,
+        "maxWalkSec": 180
+      },
+      "expected": {
+        "place": "UNCOMMITTED",
+        "recommendation": "REFRESH_ON_REQUEST",
+        "walkingPrompt": "HOLD"
+      }
+    },
+    {
+      "id": "no-walking-means-original-place",
+      "kind": "pickup",
+      "input": {
+        "phase": "INPUT_READY",
+        "maxWalkSec": 0
+      },
+      "expected": {
+        "place": "KEEP_ORIGINAL",
+        "recommendation": "OFF",
+        "walkingPrompt": "HOLD"
+      }
+    },
+    {
+      "id": "cancelled-pickup-never-resumes-on-location",
+      "kind": "pickup",
+      "input": {
+        "phase": "CANCELLED",
+        "nativeState": "APPLIED",
+        "vehicleFresh": true,
+        "matchesCommittedPlace": true
+      },
+      "expected": {
+        "place": "TERMINAL",
+        "recommendation": "OFF",
+        "walkingPrompt": "OFF"
+      }
+    },
+    {
+      "id": "previous-rest-arrival-is-not-current-presence",
+      "kind": "assembly",
+      "input": {
+        "target": "rest#2",
+        "nowSec": 1000,
+        "members": [
+          {
+            "id": "A",
+            "choice": "GO",
+            "arrived": true,
+            "arrivedVisit": "rest#1",
+            "presenceFresh": true,
+            "ready": true,
+            "readyAgeSec": 10
+          }
+        ]
+      },
+      "expected": {
+        "state": "UNKNOWN",
+        "expected": 1,
+        "known": 0,
+        "pending": 0,
+        "missing": [
+          "A"
+        ],
+        "latestKnownArrivalSec": null,
+        "allReady": false
+      }
+    },
+    {
+      "id": "unknown-ux-permission-defers-write",
+      "kind": "navigation_gate",
+      "input": {
+        "destinationFollow": true
+      },
+      "expected": "DEFERRED_POLICY"
+    }
+  ]
+}
