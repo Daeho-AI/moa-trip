@@ -1,12 +1,18 @@
 # 모아트립
 
-**차 여러 대로 떠나는 여행에서, 목적지는 확인하고 함께 바꾸고 위치와 도착 시간은 한곳에서 봅니다.**
+**차 여러 대로 여행할 때 목적지를 다시 검색하는 수고를 줄이고, 각 차량의 확인을 거쳐 순정 내비 목적지와 도착 정보를 함께 관리합니다.**
 
 Pleos Connect용 Kotlin 앱과 PC에서 실행하는 여행방 서버입니다. 리더가 순정 내비 목적지를 공유하면 각 차량은 변경 여부를 직접 선택합니다.
 
-[APK 다운로드](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.1/moatrip-0.4.1-release.apk) · [시연 영상](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.1/moatrip-demo.mp4) · [SDK 연결 상세](docs/IMPLEMENTATION.md) · [검증 결과](docs/VERIFICATION.md)
+일행의 목적지가 바뀔 때마다 주소를 보내고, 각 차가 다시 검색하고, 어디까지 왔는지 연락하는 과정을 줄이려는 앱입니다. 각 차량의 순정 내비에 등록된 목적지와 ETA를 기준으로 함께 이동하는 상황을 조율합니다. 리더가 바꿔도 다른 차량의 내비는 확인 전까지 유지됩니다.
+
+[APK 다운로드](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.1-r2/moatrip-0.4.1-release.apk) · [시연 영상](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.1-r2/moatrip-demo.mp4) · [SDK 연결 상세](docs/IMPLEMENTATION.md) · [검증 결과](docs/VERIFICATION.md)
 
 영상은 실제 시작 화면과 **예시 데이터 기반 프로토타입**을 함께 보여줍니다. 확인 버튼부터 실제 순정 내비 반영까지의 최종 검증은 남아 있습니다. [영상 구성](docs/DEMO.md)
+
+## 차량에서 사용하는 이유
+
+위치·ETA 공유는 [Google Maps](https://support.google.com/maps/answer/15437054?hl=en)에도 있으며, 그룹 위치·메시지 기능은 [Garmin Group Ride](https://www8.garmin.com/manuals/webhelp/GUID-94D95904-F3F7-4AAA-85EE-67751184A60C/EN-US/GUID-72B9F7CF-955E-4488-93AD-70C85CE62F05.html)에도 있습니다. 모아트립의 차량 특화 가치는 **Pleos 순정 내비의 실제 목적지 조회 → 리더의 공유 확인 → 차량별 변경 확인 → 실제 반영 재조회**를 여행방과 연결하는 데 있습니다.
 
 ## 무엇을 할 수 있나요?
 
@@ -76,6 +82,12 @@ flowchart LR
 - 실제 SDK 앱이며 연결 실패 시 가짜 위치·목적지로 대체하지 않습니다. 현재 검증 완료 범위와 재검증이 필요한 부분은 [검증 기록](docs/VERIFICATION.md)에 있습니다.
 
 현재 구현은 여행방·변경별 확인·위치/ETA 목록입니다. 자체 도로 지도, 공동 휴게소, 픽업 최적화, 이모티콘은 후속 개발 범위입니다. 호환성이 확인되지 않은 개인 경유지는 지우지 않고 변경 요청을 보류합니다.
+
+## 첫 사용자와 확장 계획
+
+초기 대상은 Pleos 차량 2~5대로 함께 여행하는 가족·친구·캠핑 모임입니다. 오너 모임과 캠핑 모임에서 소규모 사용을 검증하고, 방장의 초대 코드가 일행 참여로 이어지는지를 확인할 계획입니다. 여행 앱의 특성에 맞게 목적지 재검색·확인 연락 횟수, 초대 후 참여율, 다음 여행의 재사용률을 측정합니다. 아직 실사용자 MAU·유지율 실적은 없습니다.
+
+기본 여행방을 먼저 검증한 뒤 반복 여행 관리, 공동 휴게소와 픽업 최적화로 확장합니다. 향후 단체 여행 운영자의 관리 기능을 유료화할 수 있는지 검증할 계획이며, 계약이나 수익이 확보된 상태는 아닙니다. 현재는 각 참여 차량에 Pleos 앱과 서버 연결이 필요합니다. 일반 휴대폰 참여, 운영 서버와 유료 기능은 구현 전입니다.
 
 ## 소스 구조와 빌드
 

@@ -1,4 +1,4 @@
-param([string]$Serial='emulator-5556',[switch]$GrantTestPermissions,[switch]$Debug)
+﻿param([string]$Serial='emulator-5556',[switch]$GrantTestPermissions,[switch]$Debug)
 . (Join-Path $PSScriptRoot 'environment.ps1')
 $apk=if($Debug){Join-Path $TripBuildRoot 'app\outputs\apk\debug\app-debug.apk'}else{Join-Path $TripRoot 'apk\모아_모아트립_release.apk'}
 if(-not (Test-Path -LiteralPath $Adb)) { throw 'Android SDK not found. Set ANDROID_HOME to your Android SDK folder.' }

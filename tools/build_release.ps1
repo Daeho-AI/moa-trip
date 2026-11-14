@@ -1,4 +1,4 @@
-param([switch]$IncludeDebug)
+﻿param([switch]$IncludeDebug)
 . (Join-Path $PSScriptRoot 'environment.ps1')
 $tripKeys=Join-Path $TripRoot 'work\signing'
 New-Item -ItemType Directory -Path $tripKeys -Force | Out-Null
@@ -16,7 +16,7 @@ if(-not (Test-Path -LiteralPath $tripCredentials)) {
     @{storeFile=$keystore;password=$secret;alias='moatrip'} | ConvertTo-Json | Set-Content -LiteralPath $tripCredentials -Encoding utf8
     Remove-Item -LiteralPath $passFile
 }
-$signing=Get-Content -LiteralPath $tripCredentials -Raw | ConvertFrom-Json
+$signing=Get-Content -LiteralPath $tripCredentials -Raw -Encoding UTF8 | ConvertFrom-Json
 $env:MOATRIP_STORE_FILE=$signing.storeFile
 $env:MOATRIP_STORE_PASSWORD=$signing.password
 $env:MOATRIP_KEY_ALIAS=$signing.alias
