@@ -6,9 +6,11 @@ Pleos Connect용 Kotlin 앱과 PC에서 실행하는 여행방 서버입니다. 
 
 일행의 목적지가 바뀔 때마다 주소를 보내고, 각 차가 다시 검색하고, 어디까지 왔는지 연락하는 과정을 줄이려는 앱입니다. 각 차량의 순정 내비에 등록된 목적지와 ETA를 기준으로 함께 이동하는 상황을 조율합니다. 리더가 바꿔도 다른 차량의 내비는 확인 전까지 유지됩니다.
 
-[APK 다운로드](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.1-r2/moatrip-0.4.1-release.apk) · [시연 영상](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.1-r2/moatrip-demo.mp4) · [SDK 연결 상세](docs/IMPLEMENTATION.md) · [검증 결과](docs/VERIFICATION.md)
+[APK 다운로드](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.2/moatrip-0.4.2-release.apk) · [시연 영상](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.2/moatrip-demo.mp4) · [Linux 실행](docs/LINUX.md) · [검증 결과](docs/VERIFICATION.md)
 
-영상은 실제 시작 화면과 **예시 데이터 기반 프로토타입**을 함께 보여줍니다. 확인 버튼부터 실제 순정 내비 반영까지의 최종 검증은 남아 있습니다. [영상 구성](docs/DEMO.md)
+**독립된 Pleos 에뮬레이터 2대에서 화면 조작·SDK 연결 검사 38개를 통과했습니다.** 승인·거절 버튼, 순정 검색 목적지의 좌표·식별자 일치, 위치·ETA 공유, 재시작, 주행 제한을 확인했습니다. 영상은 배포 APK의 실제 조작 녹화입니다. [영상 구성](docs/DEMO.md)
+
+![실제 배포 앱: 두 차량의 목적지·위치·ETA 공유](docs/verification/actual-trip.png)
 
 ## 차량에서 사용하는 이유
 
@@ -26,11 +28,15 @@ Pleos Connect용 Kotlin 앱과 PC에서 실행하는 여행방 서버입니다. 
 
 ## 가장 빠른 실행
 
-**Windows + Python 3.10 이상 + Pleos Connect 에뮬레이터**가 필요합니다. 일반 휴대폰에서는 Pleos SDK가 작동하지 않습니다. 에뮬레이터는 [공식 개발 문서](https://document.pleos.ai/)에 따라 설치합니다.
+**검증한 환경은 Linux 워크스테이션 + Pleos 에뮬레이터 2대입니다.** Windows에서는 SSH로 연결하면 됩니다. [Linux 안내](docs/LINUX.md)에 SDK 설치부터 서버·에뮬레이터·APK 실행까지 순서대로 정리했습니다. 일반 휴대폰에서는 Pleos SDK가 작동하지 않습니다.
+
+Linux 환경 준비 후 첫 터미널에서 `source tools/linux_env.sh` → `python3 tools/start_linux_server.py`, 두 번째 터미널에서 `source tools/linux_env.sh` → `python3 tools/start_linux_emulators.py A B --memory 8192 --nvidia`를 실행합니다. `--nvidia`는 NVIDIA 드라이버를 쓰는 환경용입니다. APK 설치 명령은 Linux 안내에 있습니다.
+
+기존 Windows 설치기를 사용하는 방법은 다음과 같습니다. Windows에서 최종 두 대 동시 시연까지 재검증한 것은 아닙니다.
 
 1. 저장소를 내려받아 **`D:\Codex\moa-trip`**에 압축을 풉니다.
 2. `Start-Server.cmd`를 실행하고 창을 유지합니다. 첫 실행에서 Python 의존성을 설치합니다.
-3. Pleos 에뮬레이터를 켜고 P 상태에서 순정 내비 초기화를 마칩니다.
+3. Pleos 에뮬레이터를 켜고 P 상태에서 순정 내비 초기화를 마칩니다. 장소는 **새 검색 결과**에서 고릅니다.
 4. `Install-App.cmd`를 실행합니다. Android SDK를 찾지 못하면 `ANDROID_HOME`을 SDK 설치 폴더로 지정합니다.
 5. 앱에서 위치·알림 권한을 허용하고 **여행방 만들기 → 참여 설정 → 위치·도착 시간 공유**를 선택합니다.
 6. 다른 에뮬레이터에 같은 APK를 설치해 초대 코드로 참여합니다. 리더가 목적지를 정하고 요청하면 각 차량에서 변경 여부를 선택합니다.
@@ -76,12 +82,15 @@ flowchart LR
 ## 테스트 환경과 범위
 
 - **Pleos Connect 에뮬레이터 2.1.0**, Android 14 / API 34, x86_64.
+- Ubuntu 24.04 워크스테이션, KVM, 전용 AVD 2대(각 8 GB). Windows에서 SSH로 실행·녹화할 수 있습니다. [Linux 설치·실행 안내](docs/LINUX.md)
 - **2560 × 1440, 160 dpi**. 넓은 창은 목적지·차량 목록 2열, 좁은 창은 세로 배치.
 - Navi Service 3.0.4 / 순정 Navigation 3.3.2-rc5-hotfix.3.
 - `apk/모아_모아트립_release.apk`: release 빌드, 자체 서명. 마켓 출시용 인증을 뜻하지 않습니다.
 - 실제 SDK 앱이며 연결 실패 시 가짜 위치·목적지로 대체하지 않습니다. 현재 검증 완료 범위와 재검증이 필요한 부분은 [검증 기록](docs/VERIFICATION.md)에 있습니다.
 
 현재 구현은 여행방·변경별 확인·위치/ETA 목록입니다. 자체 도로 지도, 공동 휴게소, 픽업 최적화, 이모티콘은 후속 개발 범위입니다. 호환성이 확인되지 않은 개인 경유지는 지우지 않고 변경 요청을 보류합니다.
+
+검사한 Connect 2.1.0의 기본 최근 목적지와 현재 검색 결과가 다른 사례가 있었습니다. 실제 등록 결과가 요청한 위치와 다르면 **‘순정 내비 확인 필요’**로 표시하고 ETA 집계·추가 자동 요청을 보류합니다. 최근 목록 대신 새 검색을 사용하는 재현 조건과 상세 결과는 검증 기록에 있습니다.
 
 ## 첫 사용자와 확장 계획
 

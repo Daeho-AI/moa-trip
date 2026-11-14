@@ -11,6 +11,7 @@ android/local.properties
 *.db-shm
 *.keystore
 *.jks
+*.apk.idsig
 .env
 AGENTS.md
 *.log

@@ -76,6 +76,8 @@ class TripController(private val context: Context,private val scope: CoroutineSc
     }
     private fun failure(t: Throwable) {
         mutable.update { it.copy(error=t.message ?: "연결을 확인하세요",busy=false) }
+        if(BuildConfig.DEBUG) (context.applicationContext as TripApplication).writeDiagnostic("action-error.json",
+            JSONObject().put("atMs",now()).put("type",t.javaClass.simpleName).put("message",t.message).toString())
         if(t is ApiFailure && t.code in listOf(401,404,410)) {
             setPrompt(null)
             api.disconnect()
@@ -255,7 +257,11 @@ class TripController(private val context: Context,private val scope: CoroutineSc
                 settings.prefs.edit().putBoolean("writePending",false).remove("pendingWrite").apply()
                 if(inFlight.roomId==snap.room.id && inFlight.revision==snap.room.planRevision) receipt(snap,"APPLIED")
             } else if(now()-inFlight.issued>15000) {
-                uncertain=true; receipt(snap,"WRITE_UNCERTAIN","내비 요청 종료 여부를 확인 중입니다")
+                uncertain=true
+                receipt(snap,"WRITE_UNCERTAIN",if(fresh && current.destination!=null &&
+                    !samePlace(inFlight.target,current.destination))
+                    "요청한 장소와 실제 내비가 다릅니다. 순정 내비를 확인하세요."
+                    else "순정 내비에서 요청 결과를 확인하세요. 추가 변경은 보류합니다.")
             } else if(inFlight.roomId==snap.room.id && inFlight.revision==snap.room.planRevision) receipt(snap,"APPLYING")
             else receipt(snap,"WAITING_CONNECTION","이전에 승인한 내비 요청 확인 중")
         } else if(uncertain) receipt(snap,"WRITE_UNCERTAIN","이전 요청 결과 확인 전 추가 설정을 중지했습니다")

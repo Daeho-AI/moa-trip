@@ -1,0 +1,161 @@
+{
+  "version": "0.4.2",
+  "date": "2026-11-14",
+  "environment": "Two independent Pleos Connect 2.1.0 AVDs on Linux/KVM",
+  "method": "Actual UI approvals and refusals; initial destination from native UI search; SDK probes only for later destination changes and explicit stale-key replay; emulated GPS/gear/speed",
+  "passed": 38,
+  "checks": [
+    {
+      "check": "emulator-5556 actual SDK ready",
+      "passed": true
+    },
+    {
+      "check": "emulator-5558 actual SDK ready",
+      "passed": true
+    },
+    {
+      "check": "different native destinations before test",
+      "passed": true
+    },
+    {
+      "check": "leader prompt before any plan publication",
+      "passed": true
+    },
+    {
+      "check": "leader change never publishes without confirmation",
+      "passed": true
+    },
+    {
+      "check": "leader decline keeps own destination private",
+      "passed": true
+    },
+    {
+      "check": "leader can reopen sharing confirmation",
+      "passed": true
+    },
+    {
+      "check": "leader explicit confirmation publishes canonical destination",
+      "passed": true
+    },
+    {
+      "check": "recipient receives confirmation instead of automatic route",
+      "passed": true
+    },
+    {
+      "check": "legacy auto-follow grant cannot write navigation",
+      "passed": true
+    },
+    {
+      "check": "recipient can keep current destination",
+      "passed": true
+    },
+    {
+      "check": "decline and repeated snapshots preserve native route",
+      "passed": true
+    },
+    {
+      "check": "decline survives process restart without route write",
+      "passed": true
+    },
+    {
+      "check": "recipient can reconsider the same proposal",
+      "passed": true
+    },
+    {
+      "check": "recipient approval writes exactly once and native readback confirms",
+      "passed": true
+    },
+    {
+      "check": "fresh native UI search destination matches recipient coordinates and identifiers exactly",
+      "passed": true
+    },
+    {
+      "check": "both real FusedLocation samples and native ETAs are shared",
+      "passed": true
+    },
+    {
+      "check": "repeated snapshots never duplicate approved write",
+      "passed": true
+    },
+    {
+      "check": "every subsequent leader change needs confirmation",
+      "passed": true
+    },
+    {
+      "check": "second leader destination stays local until confirmed",
+      "passed": true
+    },
+    {
+      "check": "second recipient proposal awaits separate confirmation",
+      "passed": true
+    },
+    {
+      "check": "previous approval does not authorize new destination",
+      "passed": true
+    },
+    {
+      "check": "new leader proposal detected while recipient deciding",
+      "passed": true
+    },
+    {
+      "check": "superseding revision delivered",
+      "passed": true
+    },
+    {
+      "check": "stale confirmation cannot apply a superseded destination",
+      "passed": true
+    },
+    {
+      "check": "latest leader proposal ready",
+      "passed": true
+    },
+    {
+      "check": "latest recipient proposal ready",
+      "passed": true
+    },
+    {
+      "check": "background notification never changes native destination",
+      "passed": true
+    },
+    {
+      "check": "actual platform driving restrictions delivered",
+      "passed": true
+    },
+    {
+      "check": "driving restrictions do not bypass destination confirmation",
+      "passed": true
+    },
+    {
+      "check": "short confirmation works under platform driving restrictions",
+      "passed": true
+    },
+    {
+      "check": "parked controls restored",
+      "passed": true
+    },
+    {
+      "check": "restart after approval does not replay request",
+      "passed": true
+    },
+    {
+      "check": "manual participant route change is preserved",
+      "passed": true
+    },
+    {
+      "check": "manual route is never silently overwritten",
+      "passed": true
+    },
+    {
+      "check": "manual override can be explicitly reconsidered",
+      "passed": true
+    },
+    {
+      "check": "final destination matches after fresh confirmation",
+      "passed": true
+    },
+    {
+      "check": "review room has two live locations and ETAs",
+      "passed": true
+    }
+  ]
+}

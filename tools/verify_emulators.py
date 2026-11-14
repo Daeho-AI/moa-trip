@@ -3,15 +3,18 @@ Only the dedicated MoaTrip A/B emulators and their test rooms are changed.
 GPS and driving restrictions are injected at the emulator/platform boundary, not app fixtures.
 """
 import json
+import os
+import shutil
 import subprocess
 import time
 import xml.etree.ElementTree as ET
 import urllib.request
 import threading
+import emulator_ui
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-ADB=r'D:\Codex\PleosBossToolchain\android-sdk\platform-tools\adb.exe'
+ADB=os.environ.get('MOATRIP_ADB') or shutil.which('adb') or r'D:\Codex\PleosBossToolchain\android-sdk\platform-tools\adb.exe'
 OUT=ROOT/'work/evidence/confirm-e2e'
 OUT.mkdir(parents=True,exist_ok=True)
 A='emulator-5556'; B='emulator-5558'
@@ -104,7 +107,15 @@ def prompt_key(p):
 
 
 def respond(serial,approve,key=None):
-    command(serial,'trip','respond',prompt_key=key or prompt_key(read(serial,prompt=True)),approve=approve)
+    if key is not None:
+        # Deliberately replay a stale key; normal approvals below use actual UI.
+        command(serial,'trip','respond',prompt_key=key,approve=approve)
+        return
+    prompt=read(serial,prompt=True)
+    assert prompt, 'No current proposal'
+    command(serial,'trip','refresh')
+    labels=('일행에게 요청','나만 변경') if prompt['kind']=='LEADER' else ('목적지 변경','현재 목적지 유지')
+    emulator_ui.tap(serial,labels[0] if approve else labels[1])
 
 
 def unchanged(label,serial,count,poi,seconds=5):
@@ -127,6 +138,7 @@ def capture(name):
 def run():
     global console_ready
     try:
+        emulator_ui.prepare((A,B))
         for serial in (A,B):
             assert adb(serial,'shell','getprop','ro.boot.qemu.avd_name')==('MoaTripA' if serial==A else 'MoaTripB')
             users[serial]=adb(serial,'shell','am','get-current-user')
@@ -138,9 +150,12 @@ def run():
                 wait(serial+' previous test participation ended',lambda s=serial:active_room_id(s) is None)
         adb(A,'emu','geo','fix','127.035','37.49')
         adb(B,'emu','geo','fix','127.042','37.487')
-        command(A,'probe','official')
+        emulator_ui.native_search_42dot(A)
+        command(A,'probe','refresh')
         command(B,'probe','official-b')
         wait('different native destinations before test',lambda:target(A)==FIRST and target(B)==SECOND)
+        source=read(A)['destination']
+        (OUT/'native-search-source.json').write_text(json.dumps(source,ensure_ascii=False,indent=2),encoding='utf-8')
         command(A,'trip','create',title='가을여행',nickname='대호')
         wait('leader prompt before any plan publication',lambda:active_room_id(A) and pending(A,'LEADER',FIRST) and revision()==0)
         command(A,'trip','grant',location=True,eta=True,follow=True)
@@ -176,6 +191,8 @@ def run():
         wait('recipient can reconsider the same proposal',lambda:pending(B,'FOLLOWER',FIRST))
         respond(B,True)
         wait('recipient approval writes exactly once and native readback confirms',lambda:target(B)==FIRST and writes(B)==count+1 and own(read(B,True))['sync']['state'] in ['APPLIED','MATCHED'])
+        assert read(B)['destination']==source, 'Native search destination did not round-trip exactly'
+        passed('fresh native UI search destination matches recipient coordinates and identifiers exactly')
         adb(A,'emu','geo','fix','127.035','37.49')
         adb(B,'emu','geo','fix','127.042','37.487')
         wait('both real FusedLocation samples and native ETAs are shared',lambda:read(A,True)['assembly']['known']==2 and all(m['location'] is not None for m in read(A,True)['members']))

@@ -41,7 +41,7 @@ fun syncText(state: String)=when(state) {
     "APPLYING"->"목적지 등록 중"
     "APPLIED","MATCHED"->"같은 목적지"
     "DECLINED","LOCAL_OVERRIDE"->"현재 목적지 유지"
-    "WRITE_UNCERTAIN"->"내비 결과 확인 중"
+    "WRITE_UNCERTAIN"->"순정 내비 확인 필요"
     "DEFERRED_POLICY"->"차량 상태 확인 중"
     "CAPACITY_CONFLICT"->"경유지 확인 필요"
     "FAILED"->"내비 확인 필요"
@@ -196,9 +196,11 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
             snap.room.destination?.address?.takeIf { it.isNotBlank() }?.let { Text(it.take(sdk.uxMaxStringLength),fontSize=21.sp,color=colors.onSurfaceVariant,maxLines=2,overflow=TextOverflow.Ellipsis) }
             HorizontalDivider(color=colors.outlineVariant)
             Text(if(ui.prompt!=null) "새 목적지 요청이 있습니다" else syncText(ui.syncState),fontSize=22.sp,fontWeight=FontWeight.Medium)
+            if(ui.syncState=="WRITE_UNCERTAIN")
+                Text(ui.syncReason.take(sdk.uxMaxStringLength),fontSize=20.sp,color=colors.onSurfaceVariant,maxLines=3,overflow=TextOverflow.Ellipsis)
             if(!samePlace(snap.room.destination,sdk.destination) && sdk.destination!=null)
                 Text("내 내비 · ${sdk.destination?.name}",fontSize=20.sp,color=colors.onSurfaceVariant,maxLines=2,overflow=TextOverflow.Ellipsis)
-            if(ui.prompt!=null || (!samePlace(snap.room.destination,sdk.destination) && (if(snap.self.leader) sdk.destination!=null else snap.room.destination!=null)))
+            if(ui.syncState!="WRITE_UNCERTAIN" && (ui.prompt!=null || (!samePlace(snap.room.destination,sdk.destination) && (if(snap.self.leader) sdk.destination!=null else snap.room.destination!=null))))
                 QuietButton(if(ui.prompt!=null) "변경 요청 확인" else if(snap.self.leader) "현재 목적지 공유" else "목적지 다시 확인",!ui.busy && sdk.uxKnown && (!snap.self.leader || snap.room.leaderBroadcastEnabled),onReview)
             Spacer(Modifier.height(8.dp))
             val time=snap.assembly.latestKnownArrivalAt
@@ -232,7 +234,11 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
                 val p=member.location
                 val elapsed=(now-ui.receivedAtMs).coerceAtLeast(0)
                 val detail=if(live && p!=null && elapsed+p.ageMs<60000) {
-                    val own=sdk.location?.takeIf { it.measuredAtElapsedMs?.let { measured -> now-measured in 0..14999 }==true }
+                    // SDK callbacks can be newer than the UI's one-second tick.
+                    // Use the current monotonic clock so fresh samples do not
+                    // momentarily look like future data and hide the distance.
+                    val locationNow=SystemClock.elapsedRealtime()
+                    val own=sdk.location?.takeIf { it.measuredAtElapsedMs?.let { measured -> locationNow-measured in 0..14999 }==true }
                     val age=(elapsed+p.ageMs)/1000
                     val distance=own?.let { distanceMeters(it.latitude,it.longitude,p.latitude,p.longitude)/1000 }
                     if(member.id==snap.self.id) "위치 공유 중 · ${age}초 전"

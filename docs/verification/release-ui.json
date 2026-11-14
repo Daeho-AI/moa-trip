@@ -1,0 +1,44 @@
+{
+  "version": "0.4.2",
+  "apk_sha256": "fee316b94fb75e50e4ee54266db41a6b664cf32bfb350a63b7b9d8117da367c7",
+  "video_sha256": "db1b14e45bc274ee0fb86112a34b87ff70582d137321ad66372f258eed43dd22",
+  "video_seconds": 108,
+  "video_pixels": "1920x1080",
+  "native_search_matching": {
+    "build": "debug SDK acceptance test",
+    "source": {
+      "latitude": 37.41289678,
+      "longitude": 127.09383464,
+      "name": "42dot",
+      "address": "수정구 시흥동",
+      "poiId": "36khp37hh8gqcm5nqhe5",
+      "poiSubId": null,
+      "poiProvider": "",
+      "displayLatitude": null,
+      "displayLongitude": null
+    },
+    "recipient": {
+      "latitude": 37.41289678,
+      "longitude": 127.09383464,
+      "name": "42dot",
+      "address": "수정구 시흥동",
+      "poiId": "36khp37hh8gqcm5nqhe5",
+      "poiSubId": null,
+      "poiProvider": "",
+      "displayLatitude": null,
+      "displayLongitude": null
+    },
+    "exact_match": true
+  },
+  "release_ui_checks": [
+    "create and join room",
+    "leader refuses then approves sharing",
+    "recipient refuses; native DOT42 remains",
+    "Drive 30 km/h and AAOS UX 80; actual approval button visible",
+    "recipient native destination becomes 42dot",
+    "both views show 2 of 2 ETAs, same destination and 0.7 km distance"
+  ],
+  "release_debuggable": false,
+  "recording_invite_revoked": true,
+  "scope": "Two emulators; GPS/gear/speed are test inputs; no real-road ETA accuracy claim"
+}

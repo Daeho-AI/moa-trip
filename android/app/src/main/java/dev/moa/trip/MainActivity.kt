@@ -50,7 +50,10 @@ class MainActivity: ComponentActivity() {
             "refresh" -> app.trip.refresh()
             "respond" -> app.trip.state.value.prompt?.let { prompt ->
                 // Debug intents exercise the same revision-bound controller action as the visible buttons.
-                if(intent.getStringExtra("prompt_key")==prompt.key)
+                val matches=intent.getStringExtra("prompt_key")==prompt.key
+                app.writeDiagnostic("command-probe.json",org.json.JSONObject()
+                    .put("matched",matches).put("approve",intent.getBooleanExtra("approve",false)).toString())
+                if(matches)
                     app.trip.respondDestination(prompt,intent.getBooleanExtra("approve",false))
             }
             "reconsider" -> app.trip.reconsiderDestination()

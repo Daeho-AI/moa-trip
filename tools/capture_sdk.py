@@ -1,11 +1,13 @@
 """Capture the app's debug-only observations, without credentials or session tokens."""
 import argparse
 import json
+import os
+import shutil
 import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ADB = Path(r'D:\Codex\PleosBossToolchain\android-sdk\platform-tools\adb.exe')
+ADB = Path(os.environ.get('MOATRIP_ADB') or shutil.which('adb') or r'D:\Codex\PleosBossToolchain\android-sdk\platform-tools\adb.exe')
 p = argparse.ArgumentParser()
 p.add_argument('name')
 p.add_argument('--serial', default='emulator-5556')
