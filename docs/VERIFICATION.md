@@ -1,4 +1,21 @@
-# v0.4.2 검증 기록
+# v0.4.3 검증 기록
+
+2026-11-15에 같은 두 Pleos 에뮬레이터에서 다시 확인했다. 기존 앱 흐름은 **40/40**, 새 순정 내비 위 알림 흐름은 **18/18** 통과했다. [기존 흐름 결과](verification/2026-11-15-regression.json), [배경 흐름 결과](verification/2026-11-15-background.json). 기존 흐름 40개에는 이전 시험방 종료·복원 점검도 포함된다.
+
+| 새 확인 항목 | 결과 |
+|---|---|
+| 리더의 순정 내비 위 알림 | 나만 변경은 계획을 게시하지 않고, 일행에게 요청은 해당 목적지를 공유 |
+| 참여 차량의 거절 | 모아트립 화면을 열지 않고 기존 DOT42 목적지 유지, SDK 쓰기 0회 |
+| 주행 중 승인 | Drive/30 km/h 및 실제 UX 제한 상태에서 알림 버튼 선택, 순정 내비 화면 유지 |
+| 승인 결과 | SDK 쓰기 1회. 두 번의 readback 완료 후 리더의 새 검색 목적지와 좌표·ID·sub-ID·provider 일치 |
+| 배경 데이터 | 양쪽이 순정 내비를 보면서도 실제 FusedLocation 위치·NaviHelper ETA 전달 |
+| 배포본 | v0.4.3 / versionCode 5, release·debuggable=false, 기존 배포 키의 APK v3 서명 |
+
+`tools/verify_background.py`는 실제 시스템 알림 창을 읽고 버튼을 눌러 검사한다. 이후 동일한 release APK로 승인·거절 두 예시를 실제 조작해 녹화했다. SDK 데이터나 시스템 주행 제한을 우회하지 않았다. 알림은 전체 제안과 개인 경로에 묶인 immutable PendingIntent와 비공개 수신기를 사용한다. [동작 및 한계](NATIVE_NAVIGATION.md)
+
+아래는 v0.4.2부터 확인한 기반 동작과 제약의 기록이다. 개인 경유지 호환성·지도 마커 등 미완료 범위는 이번 알림 변경으로 확대하지 않는다.
+
+## 기반 검증 기록
 
 2026-11-14. Ubuntu 24.04 / KVM / NVIDIA GPU에서 독립된 **Pleos Connect 2.1.0 에뮬레이터 2대**로 확인했다. 각 기기는 Android 14 API 34, 2560×1440, 160 dpi, RAM 8 GB다. NaviHelper 3.0.5, FusedLocation 1.1.3, Navi Service 3.0.4, 순정 Navigation 3.3.2-rc5-hotfix.3을 사용했다.
 
@@ -18,7 +35,7 @@
 | 수동 경로 변경 | 참여자가 별도로 바꾼 목적지를 유지. 새 확인 후에만 일행 목적지 반영 |
 | Kotlin core | 14개 통과. 목적지 비교, 확인 유효성, 독립된 readback 판정 |
 | FastAPI | 16개 통과. 동의·권한·오래된 제안·개별 결정·위치/ETA 전달·철회 |
-| 배포 APK | v0.4.2 / versionCode 4, release·debuggable=false. APK Signature Scheme v3 검증. 해시는 [SHA256.txt](../apk/SHA256.txt) |
+| 당시 배포 APK | v0.4.2 / versionCode 4, release·debuggable=false, APK v3 서명. 현재 배포 해시는 [SHA256.txt](../apk/SHA256.txt) |
 
 자동 수용 시험은 debug 빌드에서 SDK 관측 파일을 읽는다. 방 생성·입장·후속 목적지 준비에는 진단 명령도 사용하지만, **일반 승인·거절은 모두 실제 UI 버튼**이다. 오래된 확인키 재전송만 진단 명령으로 주입한다. 별도 배포 영상은 release APK에서 방 생성·참여·공유 설정까지 실제 화면 조작으로 녹화한다. release는 진단 명령을 처리하지 않는다.
 

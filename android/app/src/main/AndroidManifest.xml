@@ -21,6 +21,7 @@
             <meta-data android:name="distractionOptimized" android:value="true" />
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity>
+        <receiver android:name=".DestinationActionReceiver" android:exported="false" />
         <service android:name=".TripService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-started travel room: ongoing consented native navigation synchronization and vehicle location/ETA sharing through Pleos vehicle services. Stops when user ends the trip." />
         </service>

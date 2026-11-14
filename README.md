@@ -2,15 +2,15 @@
 
 **차 여러 대로 여행할 때 목적지를 다시 검색하는 수고를 줄이고, 각 차량의 확인을 거쳐 순정 내비 목적지와 도착 정보를 함께 관리합니다.**
 
-Pleos Connect용 Kotlin 앱과 PC에서 실행하는 여행방 서버입니다. 리더가 순정 내비 목적지를 공유하면 각 차량은 변경 여부를 직접 선택합니다.
+Pleos Connect용 Kotlin 앱과 PC에서 실행하는 여행방 서버입니다. **순정 내비를 보던 화면에서 목적지 변경 요청을 받고, 알림의 두 버튼으로 바로 선택합니다.**
 
 일행의 목적지가 바뀔 때마다 주소를 보내고, 각 차가 다시 검색하고, 어디까지 왔는지 연락하는 과정을 줄이려는 앱입니다. 각 차량의 순정 내비에 등록된 목적지와 ETA를 기준으로 함께 이동하는 상황을 조율합니다. 리더가 바꿔도 다른 차량의 내비는 확인 전까지 유지됩니다.
 
-[APK 다운로드](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.2/moatrip-0.4.2-release.apk) · [시연 영상](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.2/moatrip-demo.mp4) · [Linux 실행](docs/LINUX.md) · [검증 결과](docs/VERIFICATION.md)
+[APK 다운로드](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.3/moatrip-0.4.3-release.apk) · [시연 영상](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.3/moatrip-demo.mp4) · [Linux 실행](docs/LINUX.md) · [검증 결과](docs/VERIFICATION.md)
 
-**독립된 Pleos 에뮬레이터 2대에서 화면 조작·SDK 연결 검사 38개를 통과했습니다.** 승인·거절 버튼, 순정 검색 목적지의 좌표·식별자 일치, 위치·ETA 공유, 재시작, 주행 제한을 확인했습니다. 영상은 배포 APK의 실제 조작 녹화입니다. [영상 구성](docs/DEMO.md)
+**독립된 Pleos 에뮬레이터 2대에서 순정 내비 위 알림의 승인·거절과 실제 목적지 반영을 확인했습니다.** 주행 상태에서도 앱을 전면에 열지 않고 처리하며 위치·ETA 공유는 배경에서 이어집니다. 영상은 배포 APK의 실제 조작 녹화입니다. [영상 구성](docs/DEMO.md)
 
-![실제 배포 앱: 두 차량의 목적지·위치·ETA 공유](docs/verification/actual-trip.png)
+![순정 내비 위에서 목적지 변경을 확인하는 실제 배포 앱](docs/verification/native-confirmation.png)
 
 ## 차량에서 사용하는 이유
 
@@ -24,7 +24,9 @@ Pleos Connect용 Kotlin 앱과 PC에서 실행하는 여행방 서버입니다. 
 - 승인한 차량만 순정 내비에 변경을 요청합니다. 거절·무응답·재접속만으로는 바뀌지 않습니다.
 - 동의한 차량의 위치 갱신 시각·직선 거리·순정 내비 ETA를 목록으로 봅니다.
 
-주행 중에는 짧은 확인 창을 사용하고, 여행방 생성·입력·설정은 주차 후 사용합니다. 앱이 배경에 있으면 알림을 열어 변경을 확인합니다. 순정 지도 위에 다른 차량 마커를 그리는 기능은 포함하지 않습니다.
+여행방 생성·입력·공유 설정은 주차 후 마칩니다. 이후 순정 내비 위에 뜨는 알림에서 바로 승인·거절할 수 있습니다. 무응답이면 기존 목적지를 유지합니다. 알림을 놓쳤다면 여행방의 변경 요청을 다시 확인합니다.
+
+**다른 차량의 위치는 여행방 목록에서 확인합니다.** 공개 NaviHelper 3.0.5에는 순정 지도에 임의 차량 마커를 추가하는 API가 확인되지 않아, 순정 지도 위 차량 아이콘은 구현 범위에 포함하지 않습니다. [SDK 범위와 화면 정책](docs/NATIVE_NAVIGATION.md)
 
 ## 가장 빠른 실행
 
@@ -62,6 +64,7 @@ Linux 환경 준비 후 첫 터미널에서 `source tools/linux_env.sh` → `pyt
 | **NaviHelper 3.0.5** | `requestRoute`, 호환되는 경유지가 있으면 `requestRouteWithWaypoints` | 이번 요청을 승인한 차량의 목적지 등록 |
 | **FusedLocation 1.1.3** | 위치 콜백, `getLastKnownLocation` | 위도·경도·방향·표본 시각 수신 |
 | **Android Automotive API** | `CarUxRestrictionsManager`, `CarPropertyManager` 기어 조회 | 주행 제한과 주차 후 설정 적용 |
+| **Android 알림 API** | 높은 중요도의 내비 알림, immutable `PendingIntent`, 비공개 수신기 | 순정 내비 위에서 리더 요청·차량별 승인/거절. 화면 전환 없이 동일한 확인 검증 경로 호출 |
 | **자체 FastAPI 서버** | REST, WebSocket, SQLite | 방·초대·동의·목적지 제안·위치·ETA 전달 |
 
 Pleos SDK는 위 **2종**을 사용합니다. AAOS API는 별도 플랫폼 API입니다. Vehicle·STT·TTS SDK를 사용한 것으로 표시하지 않습니다. 내비 요청 성공은 안내 시작과 다르며, 실제 목적지·경유지 재조회가 일치해야 등록 완료로 표시합니다.

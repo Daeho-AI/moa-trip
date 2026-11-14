@@ -34,8 +34,8 @@ def prepare(serials):
         adb(serial, "push", str(build / "classes.dex"), "/data/local/tmp/moatrip-ui.dex")
 
 
-def tree(serial):
-    return ET.fromstring(adb(serial, "shell", "CLASSPATH=/data/local/tmp/moatrip-ui.dex app_process /system/bin UiDump"))
+def tree(serial, all_windows=False):
+    return ET.fromstring(adb(serial, "shell", "CLASSPATH=/data/local/tmp/moatrip-ui.dex app_process /system/bin UiDump" + (" all" if all_windows else "")))
 
 
 def tap_node(serial, node):
@@ -45,10 +45,10 @@ def tap_node(serial, node):
     adb(serial, "shell", "input", "tap", str((bounds[0]+bounds[2])//2), str((bounds[1]+bounds[3])//2))
 
 
-def tap(serial, text, timeout=20):
+def tap(serial, text, timeout=20, all_windows=False):
     deadline = time.monotonic()+timeout
     while time.monotonic() < deadline:
-        nodes = [n for n in tree(serial).iter("node") if n.get("text") == text and n.get("enabled") == "true"]
+        nodes = [n for n in tree(serial, all_windows).iter("node") if n.get("text") == text and n.get("enabled") == "true"]
         if nodes:
             tap_node(serial, nodes[-1])
             time.sleep(.5)
@@ -57,7 +57,7 @@ def tap(serial, text, timeout=20):
     raise RuntimeError(f"{serial}: visible button missing: {text}")
 
 
-def native_search_42dot(serial, query="42dot", name="42dot"):
+def native_search_42dot(serial, query="42dot", name="42dot", settle=8):
     """Choose a fresh native search result, never the bundled stale recent item."""
     adb(serial, "shell", "am", "start", "--user", "current", "-n", "ai.umos.maps.android.navigation.app/.MainActivity")
     time.sleep(1)
@@ -75,4 +75,4 @@ def native_search_42dot(serial, query="42dot", name="42dot"):
     results = [n for n in tree(serial).iter("node") if n.get("text") == name and n.get("class") == "android.widget.TextView"]
     tap_node(serial, results[-1])
     tap(serial, "목적지로")
-    time.sleep(8)
+    time.sleep(settle)

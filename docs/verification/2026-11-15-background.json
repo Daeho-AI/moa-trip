@@ -1,0 +1,74 @@
+[
+  {
+    "check": "emulator-5556 SDK ready",
+    "passed": true
+  },
+  {
+    "check": "emulator-5556 old room ended",
+    "passed": true
+  },
+  {
+    "check": "emulator-5558 SDK ready",
+    "passed": true
+  },
+  {
+    "check": "emulator-5556 heads-up over native: 나만 변경",
+    "passed": true
+  },
+  {
+    "check": "leader-decline stays on native navigation",
+    "passed": true
+  },
+  {
+    "check": "leader decline does not publish destination",
+    "passed": true
+  },
+  {
+    "check": "emulator-5556 heads-up over native: 일행에게 요청",
+    "passed": true
+  },
+  {
+    "check": "leader-approve stays on native navigation",
+    "passed": true
+  },
+  {
+    "check": "leader publishes approved target",
+    "passed": true
+  },
+  {
+    "check": "emulator-5558 heads-up over native: 현재 목적지 유지",
+    "passed": true
+  },
+  {
+    "check": "follower-decline stays on native navigation",
+    "passed": true
+  },
+  {
+    "check": "decline keeps native destination and issues no write",
+    "passed": true
+  },
+  {
+    "check": "Drive UX restrictions active",
+    "passed": true
+  },
+  {
+    "check": "emulator-5558 heads-up over native: 목적지 변경",
+    "passed": true
+  },
+  {
+    "check": "follower-approve-drive stays on native navigation",
+    "passed": true
+  },
+  {
+    "check": "background approval verified by native readbacks",
+    "passed": true
+  },
+  {
+    "check": "exact source destination matches; one SDK write",
+    "passed": true
+  },
+  {
+    "check": "both actual SDK location and ETA shared in background",
+    "passed": true
+  }
+]

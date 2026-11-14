@@ -3,8 +3,11 @@ package dev.moa.trip
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.IBinder
 import dev.moa.trip.core.DestinationPrompt
+import kotlinx.serialization.encodeToString
+import java.security.MessageDigest
 
 class TripService: Service() {
     override fun onCreate() {
@@ -23,12 +26,34 @@ class TripService: Service() {
         fun clearProposal(context: Context) { context.getSystemService(NotificationManager::class.java).cancel(7302) }
         fun showProposal(context: Context,prompt: DestinationPrompt) {
             val manager=context.getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(NotificationChannel("destination","목적지 변경 요청",NotificationManager.IMPORTANCE_DEFAULT))
+            // Android does not raise an existing channel's importance; use a new channel.
+            val channel="destination_confirmation_v2"
+            manager.createNotificationChannel(NotificationChannel(channel,"목적지 변경 확인",NotificationManager.IMPORTANCE_HIGH).apply {
+                description="순정 내비를 보면서 목적지 변경 여부를 선택합니다"
+            })
             val open=PendingIntent.getActivity(context,1,Intent(context,MainActivity::class.java),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            runCatching { manager.notify(7302,Notification.Builder(context,"destination").setSmallIcon(android.R.drawable.ic_dialog_map)
-                .setContentTitle(if(prompt.kind=="LEADER") "일행에게도 변경을 요청할까요?" else "목적지 변경 요청이 왔습니다")
-                .setContentText(prompt.target.name.take(40)+" · 열어서 확인")
-                .setContentIntent(open).setOnlyAlertOnce(true).setAutoCancel(true).build()) }
+            val app=context.applicationContext as TripApplication
+            val payload=app.json.encodeToString(prompt)
+            // Bind to the COMPLETE prompt, including the personal route shown at notification time.
+            // Old PendingIntents must never acquire a newer prompt's authority through UPDATE_CURRENT.
+            val digest=MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
+            fun action(approve: Boolean,label: String): Notification.Action {
+                val intent=Intent(context,DestinationActionReceiver::class.java)
+                    .setAction(DestinationActionReceiver.RESPOND)
+                    .setData(Uri.parse("moatrip://destination/$digest/$approve"))
+                    .putExtra("prompt",payload).putExtra("approve",approve)
+                val pending=PendingIntent.getBroadcast(context,0,intent,PendingIntent.FLAG_IMMUTABLE)
+                return Notification.Action.Builder(null,label,pending).build()
+            }
+            val leader=prompt.kind=="LEADER"
+            // A route-change consent event: no messaging/call/emergency or full-screen intent.
+            runCatching { manager.notify(7302,Notification.Builder(context,channel).setSmallIcon(R.drawable.ic_moatrip)
+                .setCategory(Notification.CATEGORY_NAVIGATION).setVisibility(Notification.VISIBILITY_PRIVATE)
+                .setContentTitle(if(leader) "일행에게도 변경을 요청할까요?" else "목적지를 변경할까요?")
+                .setContentText(prompt.target.name.take(app.gateway.state.value.uxMaxStringLength.coerceIn(1,40)))
+                .addAction(action(false,if(leader) "나만 변경" else "현재 목적지 유지"))
+                .addAction(action(true,if(leader) "일행에게 요청" else "목적지 변경"))
+                .setContentIntent(open).setOnlyAlertOnce(false).setAutoCancel(false).build()) }
         }
     }
 }

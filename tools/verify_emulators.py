@@ -66,7 +66,7 @@ def wait(label,condition,seconds=100):
         try:
             last=condition()
             if last: passed(label); return last
-        except (json.JSONDecodeError,subprocess.SubprocessError,KeyError,TypeError): pass
+        except (json.JSONDecodeError,subprocess.SubprocessError,KeyError,TypeError,ET.ParseError): pass
         time.sleep(1)
     raise AssertionError(f'{label}: timeout; last={last}')
 

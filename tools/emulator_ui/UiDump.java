@@ -2,6 +2,8 @@ import android.app.UiAutomation;
 import android.os.HandlerThread;
 import android.graphics.Rect;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
+import android.accessibilityservice.AccessibilityServiceInfo;
 import org.xmlpull.v1.XmlSerializer;
 import android.util.Xml;
 import java.io.StringWriter;
@@ -12,6 +14,7 @@ public class UiDump {
   x.startTag(null,"node");
   x.attribute(null,"text",n.getText()==null?"":n.getText().toString());
   x.attribute(null,"class",n.getClassName()==null?"":n.getClassName().toString());
+  x.attribute(null,"package",n.getPackageName()==null?"":n.getPackageName().toString());
   x.attribute(null,"resource-id",n.getViewIdResourceName()==null?"":n.getViewIdResourceName());
   x.attribute(null,"content-desc",n.getContentDescription()==null?"":n.getContentDescription().toString());
   x.attribute(null,"bounds","["+b.left+","+b.top+"]["+b.right+","+b.bottom+"]");
@@ -28,7 +31,13 @@ public class UiDump {
   UiAutomation.class.getMethod("connect").invoke(ui);
   try {
    StringWriter out=new StringWriter();XmlSerializer x=Xml.newSerializer();x.setOutput(out);x.startDocument("UTF-8",true);
-   x.startTag(null,"hierarchy");node(x,ui.getRootInActiveWindow());x.endTag(null,"hierarchy");x.endDocument();
+   x.startTag(null,"hierarchy");
+   if(args.length>0 && args[0].equals("all")) {
+    AccessibilityServiceInfo info=ui.getServiceInfo();
+    info.flags|=AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;ui.setServiceInfo(info);
+    for(AccessibilityWindowInfo window:ui.getWindows()) node(x,window.getRoot());
+   } else node(x,ui.getRootInActiveWindow());
+   x.endTag(null,"hierarchy");x.endDocument();
    System.out.println(out.toString());
   } finally {UiAutomation.class.getMethod("disconnect").invoke(ui);thread.quitSafely();}
  }

@@ -1,11 +1,11 @@
 {
-  "version": "0.4.2",
-  "apk_sha256": "fee316b94fb75e50e4ee54266db41a6b664cf32bfb350a63b7b9d8117da367c7",
-  "video_sha256": "db1b14e45bc274ee0fb86112a34b87ff70582d137321ad66372f258eed43dd22",
-  "video_seconds": 108,
-  "video_pixels": "1920x1080",
+  "version": "0.4.3",
+  "apk_sha256": "91b09bd3f5c82225a4e38376994429d4115c6146840c7682b8728bb7e13de5dd",
+  "video_sha256": "a0131853b53d3f22ed1e4ed48f9f8359badc586c8dc9a1e3d1bee02cefc04129",
+  "video_seconds": 84.2,
+  "video_pixels": "2560x1080",
   "native_search_matching": {
-    "build": "debug SDK acceptance test",
+    "build": "v0.4.3 debug: actual heads-up approval, native SDK readbacks",
     "source": {
       "latitude": 37.41289678,
       "longitude": 127.09383464,
@@ -31,14 +31,16 @@
     "exact_match": true
   },
   "release_ui_checks": [
-    "create and join room",
-    "leader refuses then approves sharing",
-    "recipient refuses; native DOT42 remains",
-    "Drive 30 km/h and AAOS UX 80; actual approval button visible",
-    "recipient native destination becomes 42dot",
-    "both views show 2 of 2 ETAs, same destination and 0.7 km distance"
+    "actual create/join/sharing setup on signed release APK",
+    "leader chooses fresh native search result and sends request from system heads-up",
+    "recipient declines in heads-up; native DOT42 remains without app foreground",
+    "second example: recipient approves in heads-up under Drive 30 km/h",
+    "recipient native destination becomes 42dot without opening MoaTrip",
+    "both final trip screens show two locations and two native ETAs",
+    "two large native panels and 106-pixel bottom caption strip; 9 edited scenes visually reviewed",
+    "final video fully decoded without errors"
   ],
   "release_debuggable": false,
-  "recording_invite_revoked": true,
-  "scope": "Two emulators; GPS/gear/speed are test inputs; no real-road ETA accuracy claim"
+  "scope": "Two emulators; GPS/gear/speed are test inputs; no real-road ETA accuracy claim",
+  "recording_invite_visible": false
 }
