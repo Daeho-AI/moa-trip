@@ -8,6 +8,16 @@ import org.xmlpull.v1.XmlSerializer;
 import android.util.Xml;
 import java.io.StringWriter;
 public class UiDump {
+ static boolean setText(AccessibilityNodeInfo n,int[] index,String value) {
+  if(n==null) return false;
+  if(n.isEditable() && index[0]--==0) {
+   android.os.Bundle args=new android.os.Bundle();
+   args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,value);
+   return n.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,args);
+  }
+  for(int i=0;i<n.getChildCount();i++) if(setText(n.getChild(i),index,value)) return true;
+  return false;
+ }
  static void node(XmlSerializer x, AccessibilityNodeInfo n) throws Exception {
   if(n==null) return;
   Rect b=new Rect(); n.getBoundsInScreen(b);
@@ -30,6 +40,11 @@ public class UiDump {
   UiAutomation ui=(UiAutomation)UiAutomation.class.getConstructor(android.os.Looper.class,iface).newInstance(thread.getLooper(),connection.getConstructor().newInstance());
   UiAutomation.class.getMethod("connect").invoke(ui);
   try {
+   if(args.length==3 && args[0].equals("text")) {
+    String value=new String(android.util.Base64.decode(args[2],android.util.Base64.DEFAULT),java.nio.charset.StandardCharsets.UTF_8);
+    boolean changed=setText(ui.getRootInActiveWindow(),new int[]{Integer.parseInt(args[1])},value);
+    System.out.println("{\"changed\":"+changed+"}");return;
+   }
    StringWriter out=new StringWriter();XmlSerializer x=Xml.newSerializer();x.setOutput(out);x.startDocument("UTF-8",true);
    x.startTag(null,"hierarchy");
    if(args.length>0 && args[0].equals("all")) {

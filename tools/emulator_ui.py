@@ -4,6 +4,8 @@ Uses Android UiAutomation as the adb shell test user. No application fixtures,
 private application-state writes, or driving-policy overrides.
 """
 import os
+import base64
+import json
 from pathlib import Path
 import re
 import shutil
@@ -38,6 +40,14 @@ def tree(serial, all_windows=False):
     return ET.fromstring(adb(serial, "shell", "CLASSPATH=/data/local/tmp/moatrip-ui.dex app_process /system/bin UiDump" + (" all" if all_windows else "")))
 
 
+def set_text(serial, index, text):
+    """Type Unicode through the visible field's standard accessibility action."""
+    encoded=base64.b64encode(text.encode('utf-8')).decode('ascii')
+    result=adb(serial, 'shell', f"CLASSPATH=/data/local/tmp/moatrip-ui.dex app_process /system/bin UiDump text {int(index)} '{encoded}'")
+    if not json.loads(result)['changed']:
+        raise RuntimeError('Visible editable field did not accept text')
+
+
 def tap_node(serial, node):
     bounds = list(map(int, re.findall(r"-?\d+", node.get("bounds", ""))))
     if len(bounds) != 4 or bounds[2] <= bounds[0] or bounds[3] <= bounds[1]:
@@ -57,7 +67,7 @@ def tap(serial, text, timeout=20, all_windows=False):
     raise RuntimeError(f"{serial}: visible button missing: {text}")
 
 
-def native_search_42dot(serial, query="42dot", name="42dot", settle=8):
+def native_search_42dot(serial, query="42dot", name="42dot", settle=8, address_contains=None):
     """Choose a fresh native search result, never the bundled stale recent item."""
     adb(serial, "shell", "am", "start", "--user", "current", "-n", "ai.umos.maps.android.navigation.app/.MainActivity")
     time.sleep(1)
@@ -69,10 +79,14 @@ def native_search_42dot(serial, query="42dot", name="42dot", settle=8):
     tap(serial, "어디로 갈까요?")
     fields = [n for n in tree(serial).iter("node") if n.get("class") == "android.widget.EditText"]
     tap_node(serial, fields[0])
-    adb(serial, "shell", "input", "text", query)
+    set_text(serial, 0, query)
     adb(serial, "shell", "input", "keyevent", "KEYCODE_ENTER")
     time.sleep(3)
     results = [n for n in tree(serial).iter("node") if n.get("text") == name and n.get("class") == "android.widget.TextView"]
     tap_node(serial, results[-1])
+    if address_contains is not None:
+        details=[n.get('text','') for n in tree(serial).iter('node')]
+        if not any(address_contains in text for text in details):
+            raise RuntimeError(f'Native place details did not match requested area: {address_contains}; {details}')
     tap(serial, "목적지로")
     time.sleep(settle)

@@ -2,15 +2,19 @@
 
 **차 여러 대로 여행할 때 목적지를 다시 검색하는 수고를 줄이고, 각 차량의 확인을 거쳐 순정 내비 목적지와 도착 정보를 함께 관리합니다.**
 
+[**▶ 시연 영상 바로 보기 — 로그인 없이 브라우저에서 재생**](https://daeho-ai.github.io/moa-trip/)
+
+[![모아트립 시연 영상 재생 — 방 만들기부터 순정 내비 목적지 공유까지](docs/video/poster.jpg)](https://daeho-ai.github.io/moa-trip/)
+
+방 만들기 → 초대·공유 설정 → 순정 내비에서 목적지 전달 → 상대 차량 승인·거절 → 위치·도착 시간 확인을 실제 에뮬레이터 두 대로 보여줍니다. 상단의 **리더 차량 / 참여 차량** 표시로 두 차량을 구분할 수 있습니다.
+
 Pleos Connect용 Kotlin 앱과 PC에서 실행하는 여행방 서버입니다. **순정 내비를 보던 화면에서 목적지 변경 요청을 받고, 알림의 두 버튼으로 바로 선택합니다.**
 
 일행의 목적지가 바뀔 때마다 주소를 보내고, 각 차가 다시 검색하고, 어디까지 왔는지 연락하는 과정을 줄이려는 앱입니다. 각 차량의 순정 내비에 등록된 목적지와 ETA를 기준으로 함께 이동하는 상황을 조율합니다. 리더가 바꿔도 다른 차량의 내비는 확인 전까지 유지됩니다.
 
-[APK 다운로드](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.3/moatrip-0.4.3-release.apk) · [시연 영상](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.3/moatrip-demo.mp4) · [Linux 실행](docs/LINUX.md) · [검증 결과](docs/VERIFICATION.md)
+[APK 다운로드](https://github.com/Daeho-AI/moa-trip/releases/download/v0.4.3/moatrip-0.4.3-release.apk) · [영상 파일 저장](https://daeho-ai.github.io/moa-trip/video/moatrip-demo.mp4) · [Linux 실행](docs/LINUX.md) · [검증 결과](docs/VERIFICATION.md)
 
 **독립된 Pleos 에뮬레이터 2대에서 순정 내비 위 알림의 승인·거절과 실제 목적지 반영을 확인했습니다.** 주행 상태에서도 앱을 전면에 열지 않고 처리하며 위치·ETA 공유는 배경에서 이어집니다. 영상은 배포 APK의 실제 조작 녹화입니다. [영상 구성](docs/DEMO.md)
-
-![순정 내비 위에서 목적지 변경을 확인하는 실제 배포 앱](docs/verification/native-confirmation.png)
 
 ## 차량에서 사용하는 이유
 
