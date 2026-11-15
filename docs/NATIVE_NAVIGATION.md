@@ -1,6 +1,6 @@
 # 순정 내비 위에서 사용하는 모아트립
 
-2026-11-15, v0.4.3. 여행방 참여·공유 설정은 주차 후 마치고, 이동 중에는 순정 내비를 계속 사용한다.
+2026-11-15, v0.5.0. 여행방 참여·공유 설정은 주차 후 마치고, 이동 중에는 순정 내비를 계속 사용한다.
 
 ## 목적지 변경
 
@@ -11,6 +11,10 @@
 `DestinationActionReceiver`는 외부로 공개하지 않는다. 버튼은 변경 불가능한 `PendingIntent`이며 방·리더·revision·목적지·당시 개인 경로 전체에 묶인다. 이전 알림의 내용을 새 제안으로 갱신하지 않는다. 컨트롤러가 현재 제안과의 일치, 새 서버 계획, 순정 내비 상태, UX 제한을 다시 검사한 뒤 승인된 요청만 SDK에 한 번 전달한다. 두 번의 독립된 readback 일치가 있어야 완료다.
 
 Pleos Connect 2.1.0에서 실제 시스템 알림 표시, 양쪽 버튼, Drive/30 km/h 상태의 승인, 내비 화면 유지, 목적지 좌표·식별자 일치, 배경 위치·ETA 전달을 확인했다. OEM 설정이나 알림 권한에 따라 팝업이 표시되지 않을 수 있으며, 이 경우에도 자동 승인하지 않는다. 다른 차량 버전의 표시나 마켓 심사 승인을 의미하지 않는다.
+
+## 경유지 추가
+
+리더의 순정 경유지 추가도 같은 알림 흐름을 사용한다. 리더가 일행에게 요청하면 참여 차량에 **경유지 추가 / 들르지 않기**가 표시된다. 기존 경유지가 2곳이면 추가 버튼을 숨기고 개수 제한을 알린다. 승인 시 `addWaypoint`로 개인 경유지 다음에 넣으며 최종 목적지는 유지한다. [별도 방문 ID와 SDK 호환 범위](WAYPOINTS.md)
 
 ## 다른 차량의 지도 표시
 
@@ -26,4 +30,4 @@ FusedLocation으로 동의한 각 차량의 좌표를 받아 여행방으로 공
 
 ## 재현
 
-debug APK가 설치된 전용 MoaTripA/B에서 `source tools/linux_env.sh` 후 `python3 tools/verify_background.py`를 실행한다. 실제 알림 버튼을 UiAutomation으로 찾아 누르고 SDK 관측 파일과 비교한다. 결과는 `work/evidence/background-v043`에 저장된다. 앱 내부 가짜 내비 데이터로 대체하지 않는다.
+debug APK가 설치된 전용 MoaTripA/B에서 `source tools/linux_env.sh` 후 `python3 tools/verify_background.py`를 실행한다. 경유지는 `python3 tools/verify_waypoints.py`로 검사한다. 실제 알림 버튼을 UiAutomation으로 찾아 누르고 SDK 관측 파일과 비교한다. 결과는 `work/evidence/background-v050`, `work/evidence/waypoints-v050`에 저장된다. 앱 내부 가짜 내비 데이터로 대체하지 않는다.

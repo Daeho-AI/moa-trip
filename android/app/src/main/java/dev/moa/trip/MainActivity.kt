@@ -64,6 +64,10 @@ class MainActivity: ComponentActivity() {
             runCatching {
                 withTimeout(20000) { app.gateway.state.first { it.naviConnection=="CONNECTED" && it.routeOption.isNotBlank() } }
                 when(command) {
+                    "add-waypoint" -> {
+                        val place=app.json.decodeFromString<Place>(requireNotNull(intent.getStringExtra("waypoint")))
+                        app.gateway.addWaypoint(place.copy(poiSubId=place.poiSubId ?: "0"),app.gateway.state.value.waypoints.size,true)
+                    }
                     "official" -> app.gateway.requestRoute(Place(37.48544722,127.03636666,"42dot","서울시 강남구 남부순환로 2621","36khp37hh8gqcm5nqhe5","0"))
                     "roundtrip" -> app.gateway.state.value.let { app.gateway.requestRoute(requireNotNull(it.destination),it.waypoints) }
                     "roundtrip-zero" -> app.gateway.state.value.let { app.gateway.requestRoute(requireNotNull(it.destination).copy(poiSubId="0"),it.waypoints.map { p -> p.copy(poiSubId=p.poiSubId ?: "0") }) }

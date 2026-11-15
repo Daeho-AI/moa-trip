@@ -8,7 +8,7 @@ data class Place(
     val latitude: Double, val longitude: Double, val name: String,
     val address: String, val poiId: String, val poiSubId: String?,
     val poiProvider: String = "", val displayLatitude: Double? = null,
-    val displayLongitude: Double? = null,
+    val displayLongitude: Double? = null, val waypointBinding: String = "COORDINATES",
 ) {
     fun valid() = latitude.isFinite() && longitude.isFinite() && latitude in -90.0..90.0 &&
         longitude in -180.0..180.0 && !(latitude == 0.0 && longitude == 0.0) && name.isNotBlank()
@@ -29,7 +29,17 @@ fun samePlace(a: Place?, b: Place?): Boolean {
 }
 
 fun sameRoute(a: Place?, aw: List<Place>, b: Place?, bw: List<Place>): Boolean =
-    samePlace(a,b) && aw.size == bw.size && aw.zip(bw).all { samePlace(it.first,it.second) }
+    samePlace(a,b) && aw.size == bw.size && aw.zip(bw).all { sameWaypoint(it.first,it.second) }
+
+/** Connect 2.1.0's waypoint callback omits coordinates. Keep that fact explicit, never invent them. */
+fun waypointValid(p: Place)=p.valid() || (p.waypointBinding=="CONNECT_2_1_POI" && p.latitude==0.0 && p.longitude==0.0 &&
+    p.poiProvider.isEmpty() && p.poiId.isNotBlank() && p.name.isNotBlank() && p.address.isNotBlank())
+fun sameWaypoint(a: Place?,b: Place?): Boolean {
+    if(a==null || b==null) return a==b
+    if(a.valid() && b.valid()) return samePlace(a,b)
+    return waypointValid(a) && waypointValid(b) && a.waypointBinding=="CONNECT_2_1_POI" && b.waypointBinding=="CONNECT_2_1_POI" &&
+        a.poiId==b.poiId && a.poiSubId==b.poiSubId && a.poiProvider==b.poiProvider && a.name==b.name && a.address==b.address
+}
 
 @Serializable
 data class VehicleLocation(

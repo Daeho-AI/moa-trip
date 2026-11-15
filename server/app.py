@@ -42,10 +42,14 @@ class Place(Model):
     poiProvider: str = Field(default='', max_length=80)
     displayLatitude: float | None = Field(default=None, ge=-90, le=90)
     displayLongitude: float | None = Field(default=None, ge=-180, le=180)
+    waypointBinding: Literal['COORDINATES','CONNECT_2_1_POI'] = 'COORDINATES'
 
     @model_validator(mode='after')
     def coordinates(self):
-        if self.latitude == 0 and self.longitude == 0:
+        if self.waypointBinding=='CONNECT_2_1_POI':
+            if self.latitude!=0 or self.longitude!=0 or self.poiProvider or not self.address.strip():
+                raise ValueError('ID-only waypoint must preserve the raw SDK binding')
+        elif self.latitude == 0 and self.longitude == 0:
             raise ValueError('A real destination is required')
         return self
 
@@ -82,11 +86,38 @@ class PlanChange(Model):
     idempotencyKey: str = Field(min_length=8, max_length=100)
     destination: Place
 
+    @model_validator(mode='after')
+    def destination_requires_coordinates(self):
+        if self.destination.waypointBinding!='COORDINATES': raise ValueError('Destination coordinates are required')
+        return self
+
 
 class DestinationDecision(Model):
     planRevision: int = Field(ge=1)
     hostEpoch: int = Field(ge=1)
     accepted: bool
+
+
+class StopChange(Model):
+    leaderConfirmed: Literal[True]
+    planRevision: int = Field(ge=1)
+    hostEpoch: int = Field(ge=1)
+    expectedStopId: str | None = None
+    idempotencyKey: str = Field(min_length=8, max_length=100)
+    place: Place
+
+
+class StopChoice(Model):
+    stopId: str = Field(min_length=1, max_length=100)
+    planRevision: int = Field(ge=1)
+    hostEpoch: int = Field(ge=1)
+    accepted: bool
+
+
+class StopReceipt(Model):
+    stopId: str = Field(min_length=1, max_length=100)
+    state: Literal['APPLYING', 'APPLIED', 'PRESENT', 'WRITE_UNCERTAIN']
+    reason: str = Field(default='', max_length=160)
 
 
 class Location(Model):
@@ -194,12 +225,16 @@ class Store:
 
     def snapshot(self, room, own):
         current=now_ms(); active=room['state']=='ACTIVE' and room['expiresAt']>current and own['participationState']=='ACTIVE'
+        stop=room.get('stopProposal')
         members=[]; known=[]; expected=0
         for member in room['members']:
             live=self.live.get(member['id'],{})
             grant=member['grants']; allowed=active and grant['expiresAt']>current and member['participationState']=='ACTIVE'
             public={k:member[k] for k in ['id','nickname','leader','participationState','joinedAt']}
             public['sync']=member['sync']
+            stop_decision=member.get('stopDecision')
+            if not stop or not stop_decision or stop_decision['stopId']!=stop['id']: stop_decision=None
+            public['stopDecision']=stop_decision
             public['online']=active and current-live.get('receivedAt',0)<15000
             public['source']=live.get('source','PLEOS_SDK')
             public['location']=None; public['eta']=None
@@ -210,8 +245,10 @@ class Store:
                     public['location']={**position,'ageMs':age,'stale':age>=15000}
             eta=live.get('eta')
             receipt=member['sync']
+            stop_ready=(not stop or (not stop_decision and stop['expiresAt']<=current) or
+                        (stop_decision and stop_decision['state'] in ('APPLIED','PRESENT','DECLINED')))
             if (allowed and grant['etaEnabled'] and eta and eta['planRevision']==room['planRevision']
-                    and receipt['planRevision']==room['planRevision'] and receipt['state'] in ('APPLIED','MATCHED')):
+                    and stop_ready and receipt['planRevision']==room['planRevision'] and receipt['state'] in ('APPLIED','MATCHED')):
                 age=current-eta['observedAt']
                 if age<15000:
                     public['eta']={**eta,'ageMs':age,'arrivalAt':eta['observedAt']+eta['remainTimeSec']*1000}
@@ -219,9 +256,10 @@ class Store:
                 expected+=1
                 if public['eta']: known.append(public['eta']['arrivalAt'])
             members.append(public)
-        return {'serverTime':current,'room':{k:room[k] for k in ['id','title','state','hostEpoch','planRevision','expiresAt','destination','leaderBroadcastEnabled']},
+        return {'serverTime':current,'room':{**{k:room[k] for k in ['id','title','state','hostEpoch','planRevision','expiresAt','destination','leaderBroadcastEnabled']},'stopProposal':stop},
                 'self':{'id':own['id'],'leader':own['leader'],'grants':own['grants'],
                         'destinationDecision':own.get('destinationDecision'),
+                        'stopDecision':own.get('stopDecision'),
                         'inviteCode':room['inviteCode'] if own['leader'] else None,'inviteExpiresAt':room['inviteExpiresAt'] if own['leader'] else None},
                 'members':members,'assembly':{'expected':expected,'known':len(known),
                     'complete':active and expected>0 and len(known)==expected,
@@ -238,14 +276,14 @@ def create_app(db_path=None, allow_fixture=False):
         yield
         store.db.close()
 
-    app=FastAPI(title='MoaTrip core',version='0.4.0',lifespan=lifespan)
+    app=FastAPI(title='MoaTrip core',version='0.5.0',lifespan=lifespan)
     app.state.store=store
 
     def identity(request): return store.session(request.headers.get('authorization'))
     def peer(request): return request.client.host if request.client else 'unknown'
 
     @app.get('/health')
-    async def health(): return {'status':'ok','version':'0.4.0','source':'MoaTrip','serverTime':now_ms()}
+    async def health(): return {'status':'ok','version':'0.5.0','source':'MoaTrip','serverTime':now_ms()}
 
     @app.post('/v1/device-sessions')
     async def session(request: Request):
@@ -293,8 +331,8 @@ def create_app(db_path=None, allow_fixture=False):
         room,own=store.room(room_id,identity(request),True)
         if own['participationState']!='ACTIVE': raise HTTPException(409,'Trip already finished')
         if body.hostEpoch!=room['hostEpoch']: raise HTTPException(409,'Leader changed')
-        # Shared-stop workflow is intentionally not enabled in this destination-only core.
-        if body.sharedStopsEnabled: raise HTTPException(422,'Shared stops are not available in this build')
+        # A blanket grant never authorizes route changes; each stop needs its own choice.
+        if body.sharedStopsEnabled: raise HTTPException(422,'Confirm each waypoint proposal separately')
         own['grants']={**body.model_dump(),'expiresAt':room['expiresAt']}
         live=store.live.get(own['id'],{})
         if not body.locationEnabled: live.pop('location',None)
@@ -314,6 +352,7 @@ def create_app(db_path=None, allow_fixture=False):
             return json.loads(prior[1])
         if body.expectedPlanRevision!=room['planRevision'] or body.hostEpoch!=room['hostEpoch']: raise HTTPException(409,'Plan changed')
         room['destination']=body.destination.model_dump(); room['planRevision']+=1
+        room.pop('stopProposal',None)
         for member in room['members']:
             store.live.get(member['id'],{}).pop('eta',None)
             member.pop('destinationDecision',None)
@@ -324,6 +363,59 @@ def create_app(db_path=None, allow_fixture=False):
             store.db.execute('INSERT INTO actions VALUES(?,?,?,?,?)',(room_id,actor,body.idempotencyKey,body_hash,json.dumps(response)))
         store.publish(room_id)
         return response
+
+    @app.put('/v1/rooms/{room_id}/stop-proposal')
+    async def stop_proposal(room_id: str, body: StopChange, request: Request):
+        actor=identity(request); room,own=store.room(room_id,actor,True)
+        if not own['leader'] or not room['leaderBroadcastEnabled']: raise HTTPException(403,'Leader publication unavailable')
+        key='stop:'+body.idempotencyKey; body_hash=digest(body.model_dump_json())
+        prior=store.db.execute('SELECT body_hash,response FROM actions WHERE room=? AND actor=? AND key=?',(room_id,actor,key)).fetchone()
+        if prior:
+            if prior[0]!=body_hash: raise HTTPException(409,'Idempotency key reused')
+            return json.loads(prior[1])
+        if body.planRevision!=room['planRevision'] or body.hostEpoch!=room['hostEpoch'] or room['destination'] is None:
+            raise HTTPException(409,'Destination changed')
+        if body.expectedStopId!=(room.get('stopProposal') or {}).get('id'): raise HTTPException(409,'Waypoint proposal changed')
+        stop={'id':uid(),'planRevision':room['planRevision'],'hostEpoch':room['hostEpoch'],
+              'place':body.place.model_dump(),'expiresAt':min(now_ms()+600000,room['expiresAt'])}
+        room['stopProposal']=stop
+        own['stopDecision']={'stopId':stop['id'],'accepted':True,'state':'APPLIED','reason':''}
+        for member in room['members']: store.live.get(member['id'],{}).pop('eta',None)
+        response={'stopId':stop['id']}
+        with store.db:
+            store.save(room)
+            store.db.execute('INSERT INTO actions VALUES(?,?,?,?,?)',(room_id,actor,key,body_hash,json.dumps(response)))
+        store.publish(room_id)
+        return response
+
+    @app.put('/v1/rooms/{room_id}/stop-decision/me')
+    async def stop_decision(room_id: str, body: StopChoice, request: Request):
+        room,own=store.room(room_id,identity(request),True); stop=room.get('stopProposal')
+        if own['leader']: raise HTTPException(403,'Participant only')
+        if (not stop or stop['id']!=body.stopId or body.planRevision!=room['planRevision'] or
+                body.hostEpoch!=room['hostEpoch'] or stop['expiresAt']<=now_ms()):
+            raise HTTPException(409,'Waypoint proposal expired or changed')
+        prior=own.get('stopDecision')
+        if prior and prior['stopId']==stop['id']:
+            if prior['accepted']!=body.accepted: raise HTTPException(409,'This visit already has a decision')
+            return store.snapshot(room,own)
+        own['stopDecision']={'stopId':stop['id'],'accepted':body.accepted,
+                             'state':'ACCEPTED' if body.accepted else 'DECLINED','reason':''}
+        store.live.get(own['id'],{}).pop('eta',None)
+        with store.db: store.save(room)
+        store.publish(room_id)
+        return store.snapshot(room,own)
+
+    @app.put('/v1/rooms/{room_id}/stop-status/me')
+    async def stop_status(room_id: str, body: StopReceipt, request: Request):
+        room,own=store.room(room_id,identity(request),True); stop=room.get('stopProposal'); decision=own.get('stopDecision')
+        if not stop or stop['id']!=body.stopId: raise HTTPException(409,'Waypoint proposal changed')
+        if not decision or decision['stopId']!=body.stopId or not decision['accepted']: raise HTTPException(403,'Waypoint consent required')
+        decision.update(state=body.state,reason=body.reason)
+        if body.state not in ('APPLIED','PRESENT'): store.live.get(own['id'],{}).pop('eta',None)
+        with store.db: store.save(room)
+        store.publish(room_id)
+        return store.snapshot(room,own)
 
     @app.put('/v1/rooms/{room_id}/destination-decision/me')
     async def destination_decision(room_id: str, body: DestinationDecision, request: Request):

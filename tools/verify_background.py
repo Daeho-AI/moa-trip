@@ -6,7 +6,7 @@ from pathlib import Path
 import emulator_ui as ui
 import verify_emulators as v
 
-OUT=v.ROOT/'work/evidence/background-v043'
+OUT=v.ROOT/'work/evidence/background-v050'
 OUT.mkdir(parents=True,exist_ok=True)
 v.OUT=OUT
 A,B=v.A,v.B
@@ -43,7 +43,9 @@ def run():
             v.wait(s+' old room ended',lambda s=s:v.active_room_id(s) is None)
     ui.native_search_42dot(A)
     ui.native_search_42dot(B,'DOT42','DOT42')
+    v.wait('fresh native search results settled',lambda:(v.read(A).get('destination') or {}).get('name')=='42dot' and (v.read(B).get('destination') or {}).get('name')=='DOT42')
     before=v.read(B)['destination']; source=v.read(A)['destination']
+    initial_writes=v.writes(B)
     v.command(A,'trip','create',title='Trip',nickname='Car-A');native(A)
     answer(A,'나만 변경','leader-decline')
     assert v.revision()==0;v.passed('leader decline does not publish destination')
@@ -53,7 +55,7 @@ def run():
     code=v.read(A,True)['self']['inviteCode']
     v.command(B,'trip','join',code=code,nickname='Car-B');native(B)
     answer(B,'현재 목적지 유지','follower-decline')
-    v.unchanged('decline keeps native destination and issues no write',B,0,before['poiId'])
+    v.unchanged('decline keeps native destination and issues no write',B,initial_writes,before['poiId'])
     v.adb(B,'forward','tcp:8089','tcp:8088')
     v.console('/browser/session?client=moatrip-confirmation')
     threading.Thread(target=v.heartbeat,daemon=True).start()
@@ -65,7 +67,7 @@ def run():
         answer(B,'목적지 변경','follower-approve-drive')
         v.wait('background approval verified by native readbacks',lambda:v.own(v.read(B,True))['sync']['state']=='APPLIED')
         assert v.read(B)['destination']==source,(v.read(B)['destination'],source)
-        assert v.writes(B)==1
+        assert v.writes(B)==initial_writes+1
         v.passed('exact source destination matches; one SDK write')
         (OUT/'driving-platform.txt').write_text(v.adb(B,'shell','dumpsys','car_service','--services','CarDrivingStateService','CarUxRestrictionsManagerService'))
         v.screenshot(B,'native-after-approval')

@@ -67,10 +67,14 @@ def tap(serial, text, timeout=20, all_windows=False):
     raise RuntimeError(f"{serial}: visible button missing: {text}")
 
 
-def native_search_42dot(serial, query="42dot", name="42dot", settle=8, address_contains=None):
+def native_search_42dot(serial, query="42dot", name="42dot", settle=8, address_contains=None, as_waypoint=False):
     """Choose a fresh native search result, never the bundled stale recent item."""
     adb(serial, "shell", "am", "start", "--user", "current", "-n", "ai.umos.maps.android.navigation.app/.MainActivity")
-    time.sleep(1)
+    time.sleep(2)
+    if not any(n.get('package')=='ai.umos.maps.android.navigation.app' for n in tree(serial).iter('node')):
+        # Observed native-navigation dock button on the official 2560x1440 layout.
+        if '2560x1440' not in adb(serial,'shell','wm','size'):raise RuntimeError('Unexpected display size')
+        adb(serial,'shell','input','tap','1155','1370');time.sleep(2)
     if not any(n.get("text") == "어디로 갈까요?" for n in tree(serial).iter("node")):
         # Search icon observed on the official 2560x1440 Connect 2.1.0 layout.
         if "2560x1440" not in adb(serial, "shell", "wm", "size"):
@@ -88,5 +92,5 @@ def native_search_42dot(serial, query="42dot", name="42dot", settle=8, address_c
         details=[n.get('text','') for n in tree(serial).iter('node')]
         if not any(address_contains in text for text in details):
             raise RuntimeError(f'Native place details did not match requested area: {address_contains}; {details}')
-    tap(serial, "목적지로")
+    tap(serial, "경유지로" if as_waypoint else "목적지로")
     time.sleep(settle)

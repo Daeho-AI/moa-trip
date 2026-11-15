@@ -22,6 +22,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import dev.moa.trip.core.*
+import dev.moa.trip.BuildConfig
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
@@ -40,7 +41,8 @@ class PleosGateway(private val context: Context, private val scope: CoroutineSco
     private var navigationGeneration=0
     private var lastBindAt=0L
     // Empirically verified on the bundled Connect 2.1.0 navigation pair. Raw readback stays unchanged.
-    // Never apply this compatibility rule to an unknown vehicle, provider or personal waypoint.
+    // Unknown vehicles/providers remain excluded. ID-only waypoint addition is separately verified;
+    // requestRouteWithWaypoints still requires full coordinates and explicit sub-IDs.
     private val nullDestinationSubIdCompatible by lazy {
         fun version(name: String)=runCatching { context.packageManager.getPackageInfo(name,0).versionName }.getOrNull()
         android.os.Build.FINGERPRINT == "Pleos/crp_avd/crp_avd_x86_64:14/RELEASE.release_connect_v2.1.0/release_connect_v2.1.0:user/test-keys" &&
@@ -48,6 +50,9 @@ class PleosGateway(private val context: Context, private val scope: CoroutineSco
             version("ai.umos.maps.android.navigation.app")=="3.3.2-rc5-hotfix.3"
     }
     fun supportsNullDestinationSubId(place: Place)=nullDestinationSubIdCompatible && place.poiProvider.isEmpty()
+    fun supportsWaypoint(place: Place)=waypointValid(place) && place.poiId.isNotBlank() &&
+        (if(place.waypointBinding=="CONNECT_2_1_POI") nullDestinationSubIdCompatible && place.poiProvider.isEmpty()
+        else place.poiSubId!=null)
     private fun now() = SystemClock.elapsedRealtime()
     private fun has(permission: String) = context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
     private fun fail(message: String, t: Throwable? = null) {
@@ -61,7 +66,11 @@ class PleosGateway(private val context: Context, private val scope: CoroutineSco
                 remainDistanceM=info.remainDistance, destinationAtMs=now(), destinationEvents=it.destinationEvents+1) }
         }
         override fun onWayPointInfo(info: List<WaypointInfo>) {
-            mutable.update { it.copy(waypoints=info.map { p -> p.place() },waypointsAtMs=now(),waypointEvents=it.waypointEvents+1) }
+            mutable.update { it.copy(waypoints=info.map { p ->
+                val raw=p.place()
+                if(nullDestinationSubIdCompatible && raw.latitude==0.0 && raw.longitude==0.0 && raw.poiProvider.isEmpty())
+                    raw.copy(waypointBinding="CONNECT_2_1_POI") else raw
+            },waypointsAtMs=now(),waypointEvents=it.waypointEvents+1) }
         }
         override fun onRouteStateInfo(info: RouteStateInfo) {
             mutable.update { it.copy(naviMode=info.naviMode.name, routeOption=info.routeOption.name, routeStateAtMs=now()) }
@@ -182,6 +191,15 @@ class PleosGateway(private val context: Context, private val scope: CoroutineSco
                 parked=ux!=null && !ux.isRequiresDistractionOptimization && gear==VehicleGear.GEAR_PARK &&
                     (ux.activeRestrictions and CarUxRestrictions.UX_RESTRICTIONS_NO_SETUP)==0) }
         }.onFailure { mutable.update { s -> s.copy(uxKnown=false,parked=false) } }
+    }
+    fun addWaypoint(place: Place,index: Int,probeIdOnly: Boolean=false) {
+        check(state.value.naviConnection=="CONNECTED" && state.value.naviMode=="ROUTE_GUIDING") { "순정 길 안내를 먼저 시작하세요" }
+        check(index in 0..1 && state.value.waypoints.size==index && (supportsWaypoint(place) ||
+            (probeIdOnly && BuildConfig.DEBUG && nullDestinationSubIdCompatible && place.poiId.isNotBlank()))) { "경유지 수 또는 장소 호환성을 확인하세요" }
+        mutable.update { it.copy(writeCount=it.writeCount+1,lastWriteAtMs=now(),lastRequested=place,lastError=null) }
+        navi!!.addWaypoint(RequestWaypointInfo(latitude=place.latitude,longitude=place.longitude,poiName=place.name,
+            waypointIndex=if(index==0) WaypointIndex.FIRST else WaypointIndex.SECOND,
+            poiId=place.poiId,address=place.address,poiSubId=place.poiSubId ?: "0",poiProvider=place.poiProvider))
     }
     fun requestRoute(place: Place, waypoints: List<Place> = emptyList()) {
         check(state.value.naviConnection=="CONNECTED") { "내비 미연결" }

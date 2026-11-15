@@ -1,14 +1,13 @@
 {
-  "version": "0.4.3",
-  "apk_sha256": "91b09bd3f5c82225a4e38376994429d4115c6146840c7682b8728bb7e13de5dd",
-  "video_sha256": "1fe426d60da4ff56d86b840f5e40285c7e555daeba9f83c6dd4bdc461b16d502",
-  "video_seconds": 116.3,
+  "version": "0.5.0",
+  "apk_sha256": "bf818705f3168b08a1bce5dcf0d273245b8c12de4179957156b093794fcdac07",
+  "video_sha256": "9fcd5ce9fa93f82fe1cb2bd473ef0d229b8e0ea22963be11be0779aa44d842d5",
+  "video_seconds": 168.47,
   "video_pixels": "2560x1200",
   "video_fps": 30,
-  "video_bytes": 2375980,
+  "video_bytes": 3869717,
   "public_player": "https://daeho-ai.github.io/moa-trip/",
   "native_search_matching": {
-    "build": "v0.4.3 debug: actual heads-up approval, native SDK readbacks",
     "source": {
       "latitude": 37.41289678,
       "longitude": 127.09383464,
@@ -18,7 +17,8 @@
       "poiSubId": null,
       "poiProvider": "",
       "displayLatitude": null,
-      "displayLongitude": null
+      "displayLongitude": null,
+      "waypointBinding": "COORDINATES"
     },
     "recipient": {
       "latitude": 37.41289678,
@@ -29,22 +29,22 @@
       "poiSubId": null,
       "poiProvider": "",
       "displayLatitude": null,
-      "displayLongitude": null
+      "displayLongitude": null,
+      "waypointBinding": "COORDINATES"
     },
     "exact_match": true
   },
   "release_ui_checks": [
-    "actual create/join/sharing setup on signed release APK",
-    "leader chooses fresh native search result and sends request from system heads-up",
-    "recipient approves in native heads-up; destination changes from Yangsu station to Dumulmeori parking without opening MoaTrip",
-    "both trip screens show two location samples, 0.7 km straight-line separation and two native ETAs",
-    "later Semiwon change is declined in native heads-up; recipient keeps Dumulmeori parking",
-    "travel-story recording is in Park; Drive 30 km/h is covered by separate background verification",
-    "two large screens, persistent 96-pixel role headings and 130-pixel caption strip; all 12 edited scenes visually reviewed",
-    "final video fully decoded without errors"
+    "actual room creation, invitation and sharing settings on signed v0.5.0 release APK",
+    "leader and recipient approve destination through actual native heads-up actions",
+    "both cars share current location and native ETA",
+    "leader adds Semiwon in native navigation and publishes a waypoint proposal",
+    "recipient approves waypoint in native heads-up; both apps show waypoint reflection confirmed while final destination remains Dumulmeori parking",
+    "later Yangpyeong museum destination change declined; participant keeps Dumulmeori parking and its existing stop",
+    "17 edited scenes reviewed; opening second caption removed; full ffmpeg decode passed"
   ],
   "release_debuggable": false,
-  "scope": "Two emulators; GPS/gear/speed are test inputs; no real-road ETA accuracy claim",
   "recording_invite_visible": true,
-  "recording_invites_expired_after_capture": true
+  "recording_invites_expired_after_capture": true,
+  "scope": "Park-state actual release APK recording on two emulators. GPS is test input. Drive 30 km/h is separately verified in debug SDK checks."
 }

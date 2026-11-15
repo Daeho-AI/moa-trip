@@ -27,15 +27,18 @@ class TripController(private val context: Context,private val scope: CoroutineSc
     private var baseline: RouteBaseline?=settings.prefs.getString("baseline",null)?.let { runCatching { api.json.decodeFromString<RouteBaseline>(it) }.getOrNull() }
     private var paused=settings.prefs.getBoolean("paused",false)
     private var uncertain=settings.prefs.getBoolean("writePending",false)
-    private data class Pending(val roomId: String,val revision: Int,val target: Place,val waypoints: List<Place>,val issued: Long,
+    private data class Pending(val roomId: String,val revision: Int,val target: Place,val waypoints: List<Place>,val issued: Long,val stopId: String?=null,
         val confirmation: RouteConfirmation=RouteConfirmation(issued,RouteBaseline(target,waypoints)))
     private var pending: Pending?=settings.prefs.getString("pendingWrite",null)?.let { saved ->
         runCatching { api.json.decodeFromString<PendingRouteWrite>(saved) }.getOrNull()?.let {
-            Pending(it.roomId,it.revision,it.target,it.waypoints,SystemClock.elapsedRealtime())
+            Pending(it.roomId,it.revision,it.target,it.waypoints,SystemClock.elapsedRealtime(),it.stopId)
         }
     }
     private var stableCandidate: Place?=null
     private var stableSince=0L
+    private var observedRoute: RouteBaseline?=null
+    private var stopCandidate: Place?=null
+    private var stopStableSince=0L
     private var ignoredLeader: DestinationPrompt?=settings.prefs.getString("ignoredLeader",null)?.let {
         runCatching { api.json.decodeFromString<DestinationPrompt>(it) }.getOrNull()
     }
@@ -122,6 +125,7 @@ class TripController(private val context: Context,private val scope: CoroutineSc
         settings.prefs.edit().putString("roomId",snapshot.room.id).remove("baseline").putBoolean("paused",false)
             .putBoolean("localLocation",false).putBoolean("localEta",false).putBoolean("localFollow",false).apply()
         baseline=null; paused=false; stableCandidate=null; ignoredLeader=null; lastReceipt=""; lastTelemetry=0
+        observedRoute=null; stopCandidate=null
         settings.prefs.edit().remove("ignoredLeader").apply()
         mutable.value=TripUiState()
         accept(snapshot); api.connect(snapshot.room.id); TripService.start(context)
@@ -175,6 +179,7 @@ class TripController(private val context: Context,private val scope: CoroutineSc
         else { stableCandidate=null; tick() }
     }
     fun respondDestination(prompt: DestinationPrompt,approve: Boolean)=action {
+        if(prompt.isStop) { respondStop(prompt,approve); return@action }
         check(state.value.prompt==prompt && roomId==prompt.roomId) { "목적지 요청이 바뀌었습니다. 새 요청을 확인하세요" }
         check(pending==null && !uncertain) { "이전 내비 요청 결과를 먼저 확인하세요" }
         val latest=api.snapshot(prompt.roomId); accept(latest)
@@ -226,6 +231,67 @@ class TripController(private val context: Context,private val scope: CoroutineSc
             uncertain=true; receipt(checked,"WRITE_UNCERTAIN",(it.message ?: "내비 요청 확인 중").take(150))
         }
     }
+    /** Sharing a stop is a one-off visit proposal, never a replayable route plan. */
+    fun shareStop(place: Place)=action {
+        val snap=state.value.snapshot ?: return@action
+        val native=gateway.state.value
+        check(snap.self.leader && nativeFresh(native) && samePlace(snap.room.destination,currentRoute(native).destination)) { "공유 목적지로 안내 중일 때 경유지를 요청하세요" }
+        check(currentRoute(native).waypoints.any { sameWaypoint(it,place) }) { "순정 내비 경유지를 먼저 확인하세요" }
+        check(gateway.supportsWaypoint(place)) { "이 경유지의 내비 호환성을 확인할 수 없습니다" }
+        setPrompt(DestinationPrompt("LEADER_STOP",snap.room.id,snap.room.hostEpoch,snap.room.planRevision,place,currentRoute(native),snap.room.stopProposal?.id))
+    }
+    private fun stopActive(snap: TripSnapshot)=snap.room.stopProposal?.let {
+        it.planRevision==snap.room.planRevision && it.hostEpoch==snap.room.hostEpoch &&
+            it.expiresAt>snap.serverTime+(now()-state.value.receivedAtMs)
+    }==true
+    private suspend fun stopReceipt(snap: TripSnapshot,stopId: String,status: String,reason: String="") {
+        if(snap.room.stopProposal?.id!=stopId) return
+        accept(api.decode(api.request("PUT","/v1/rooms/${snap.room.id}/stop-status/me",JSONObject()
+            .put("stopId",stopId).put("state",status).put("reason",reason.take(150)))))
+    }
+    private suspend fun respondStop(prompt: DestinationPrompt,approve: Boolean) {
+        check(state.value.prompt==prompt && roomId==prompt.roomId) { "경유지 요청이 바뀌었습니다" }
+        check(pending==null && !uncertain) { "이전 내비 요청 결과를 먼저 확인하세요" }
+        val latest=api.snapshot(prompt.roomId); accept(latest)
+        var native=gateway.state.value
+        check(nativeFresh(native) && native.uxCanConfirm && promptStillValid(prompt,latest.room,currentRoute(native))) { "요청 또는 내 경로가 바뀌었습니다. 다시 확인하세요" }
+        if(prompt.isLeader) {
+            check(latest.self.leader) { "리더만 요청할 수 있습니다" }
+            if(approve) {
+                api.request("PUT","/v1/rooms/${prompt.roomId}/stop-proposal",JSONObject()
+                    .put("leaderConfirmed",true).put("planRevision",prompt.revision).put("hostEpoch",prompt.hostEpoch)
+                    .put("expectedStopId",prompt.stopId ?: JSONObject.NULL).put("idempotencyKey",UUID.randomUUID().toString())
+                    .put("place",JSONObject(api.json.encodeToString(prompt.target))))
+                accept(api.snapshot(prompt.roomId))
+            }
+            stopCandidate=null; setPrompt(null); return
+        }
+        check(!latest.self.leader && stopActive(latest)) { "경유지 요청이 만료되었습니다" }
+        check(latest.self.stopDecision?.stopId!=prompt.stopId) { "이미 선택한 경유지입니다. 다시 추가하지 않습니다" }
+        val result=decideStop(prompt.target,currentRoute(native),latest.room.destination,gateway.supportsWaypoint(prompt.target))
+        if(approve) check(result in setOf(StopApply.ADD,StopApply.PRESENT)) {
+            when(result) { StopApply.CAPACITY -> "경유지는 최대 2곳입니다. 내 경유지를 먼저 확인하세요"
+                StopApply.WRONG_DESTINATION -> "공유 목적지로 안내 중일 때만 경유지를 추가합니다"
+                else -> "이 경유지의 내비 호환성을 확인할 수 없습니다" }
+        }
+        accept(api.decode(api.request("PUT","/v1/rooms/${prompt.roomId}/stop-decision/me",JSONObject()
+            .put("stopId",prompt.stopId).put("planRevision",prompt.revision).put("hostEpoch",prompt.hostEpoch).put("accepted",approve))))
+        if(!approve) { setPrompt(null); return }
+        val checked=api.snapshot(prompt.roomId); accept(checked); native=gateway.state.value
+        check(stopActive(checked) && nativeFresh(native) && native.uxCanConfirm && promptStillValid(prompt,checked.room,currentRoute(native))) { "내 경로가 바뀌어 경유지 추가를 보류했습니다" }
+        if(result==StopApply.PRESENT) { stopReceipt(checked,requireNotNull(prompt.stopId),"PRESENT"); setPrompt(null); return }
+        stopReceipt(checked,requireNotNull(prompt.stopId),"APPLYING")
+        native=gateway.state.value
+        check(nativeFresh(native) && native.uxCanConfirm && promptStillValid(prompt,state.value.snapshot!!.room,currentRoute(native))) { "내 경로가 바뀌어 경유지 추가를 보류했습니다" }
+        val destination=requireNotNull(native.destination); val waypoints=native.waypoints+prompt.target; val start=now()
+        pending=Pending(prompt.roomId,prompt.revision,destination,waypoints,start,prompt.stopId)
+        settings.prefs.edit().putBoolean("writePending",true).putString("pendingWrite",
+            api.json.encodeToString(PendingRouteWrite(prompt.roomId,prompt.revision,destination,waypoints,prompt.stopId))).commit()
+        setPrompt(null)
+        runCatching { gateway.addWaypoint(prompt.target,native.waypoints.size) }.onFailure {
+            uncertain=true; stopReceipt(checked,requireNotNull(prompt.stopId),"WRITE_UNCERTAIN",it.message ?: "내비 반영 확인 중")
+        }
+    }
     private suspend fun receipt(snap: TripSnapshot,status: String,reason: String="") {
         mutable.update { it.copy(syncState=status,syncReason=reason) }
         val key="${snap.room.id}:${snap.room.planRevision}:$status:$reason"
@@ -245,6 +311,11 @@ class TripController(private val context: Context,private val scope: CoroutineSc
         val fresh=nativeFresh(native)
         val current=currentRoute(native)
         val target=snap.room.destination
+        if(fresh && snap.self.leader && native.naviMode=="ROUTE_GUIDING" && current.destination!=null) {
+            newSingleStop(observedRoute,current)?.takeIf(gateway::supportsWaypoint)?.let { stopCandidate=it; stopStableSince=now() }
+            observedRoute=current
+            if(stopCandidate!=null && current.waypoints.none { sameWaypoint(it,stopCandidate) }) stopCandidate=null
+        }
         val grant=snap.self.grants
         val serverNow=snap.serverTime+(now()-state.value.receivedAtMs)
         val validGrant=grant.expiresAt>serverNow && grant.hostEpoch==snap.room.hostEpoch
@@ -255,14 +326,18 @@ class TripController(private val context: Context,private val scope: CoroutineSc
             if(matches) {
                 saveBaseline(current); pending=null; uncertain=false
                 settings.prefs.edit().putBoolean("writePending",false).remove("pendingWrite").apply()
-                if(inFlight.roomId==snap.room.id && inFlight.revision==snap.room.planRevision) receipt(snap,"APPLIED")
-            } else if(now()-inFlight.issued>15000) {
+                if(inFlight.roomId==snap.room.id && inFlight.revision==snap.room.planRevision) {
+                    if(inFlight.stopId!=null) { stopReceipt(snap,inFlight.stopId,"APPLIED"); receipt(snap,"MATCHED") }
+                    else receipt(snap,"APPLIED")
+                }
+            } else if(now()-inFlight.issued>(if(inFlight.stopId!=null) 30000 else 15000)) {
+                if(inFlight.stopId!=null && !uncertain) stopReceipt(snap,inFlight.stopId,"WRITE_UNCERTAIN","순정 내비 경유지를 확인하세요")
                 uncertain=true
                 receipt(snap,"WRITE_UNCERTAIN",if(fresh && current.destination!=null &&
                     !samePlace(inFlight.target,current.destination))
                     "요청한 장소와 실제 내비가 다릅니다. 순정 내비를 확인하세요."
                     else "순정 내비에서 요청 결과를 확인하세요. 추가 변경은 보류합니다.")
-            } else if(inFlight.roomId==snap.room.id && inFlight.revision==snap.room.planRevision) receipt(snap,"APPLYING")
+            } else if(inFlight.roomId==snap.room.id && inFlight.revision==snap.room.planRevision) receipt(snap,if(inFlight.stopId==null) "APPLYING" else "WAITING_CONNECTION")
             else receipt(snap,"WAITING_CONNECTION","이전에 승인한 내비 요청 확인 중")
         } else if(uncertain) receipt(snap,"WRITE_UNCERTAIN","이전 요청 결과 확인 전 추가 설정을 중지했습니다")
         else if(snap.self.leader) {
@@ -272,7 +347,12 @@ class TripController(private val context: Context,private val scope: CoroutineSc
                     val prompt=DestinationPrompt("LEADER",id,snap.room.hostEpoch,snap.room.planRevision,requireNotNull(current.destination),current)
                     if(ignoredLeader?.let { promptStillValid(it,snap.room,current) }!=true) setPrompt(prompt)
                 }
-                if(samePlace(target,current.destination)) setPrompt(null)
+                if(samePlace(target,current.destination)) {
+                    val stop=stopCandidate
+                    if(stop!=null && now()-stopStableSince>=2000)
+                        setPrompt(DestinationPrompt("LEADER_STOP",id,snap.room.hostEpoch,snap.room.planRevision,stop,current,snap.room.stopProposal?.id))
+                    else if(state.value.prompt?.kind!="LEADER_STOP" || state.value.prompt?.let { promptStillValid(it,snap.room,current) }!=true) setPrompt(null)
+                }
             } else { stableCandidate=null; setPrompt(null) }
             if(target!=null && fresh && samePlace(current.destination,target)) { saveBaseline(current); receipt(snap,"MATCHED") }
             else receipt(snap,if(target==null) "WAITING_DESTINATION" else if(!fresh) "WAITING_CONNECTION" else "LOCAL_OVERRIDE")
@@ -282,7 +362,13 @@ class TripController(private val context: Context,private val scope: CoroutineSc
             val decision=snap.self.destinationDecision?.takeIf { it.planRevision==snap.room.planRevision && it.hostEpoch==snap.room.hostEpoch }
             when {
                 !fresh -> { setPrompt(null); receipt(snap,"WAITING_CONNECTION") }
-                samePlace(target,current.destination) -> { setPrompt(null); saveBaseline(current); receipt(snap,"MATCHED") }
+                samePlace(target,current.destination) -> {
+                    val stop=snap.room.stopProposal
+                    if(stop!=null && stopActive(snap) && snap.self.stopDecision?.stopId!=stop.id)
+                        setPrompt(DestinationPrompt("FOLLOWER_STOP",id,snap.room.hostEpoch,snap.room.planRevision,stop.place,current,stop.id))
+                    else setPrompt(null)
+                    saveBaseline(current); receipt(snap,"MATCHED")
+                }
                 decision?.accepted==false && state.value.prompt==null -> receipt(snap,"DECLINED")
                 decision?.accepted==true && baseline!=null && !sameRoute(current.destination,current.waypoints,baseline!!.destination,baseline!!.waypoints) && state.value.prompt==null ->
                     receipt(snap,"LOCAL_OVERRIDE","내가 설정한 목적지를 유지합니다")

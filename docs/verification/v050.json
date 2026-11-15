@@ -1,0 +1,451 @@
+{
+  "version": "0.5.0",
+  "environment": "Pleos Connect 2.1.0, Navi Service 3.0.4, Navigation 3.3.2-rc5-hotfix.3; two dedicated Linux AVDs",
+  "unit_tests": {
+    "core": 20,
+    "server": 23
+  },
+  "check_counts": {
+    "destination": 42,
+    "background": 20,
+    "waypoints": 24
+  },
+  "checks": {
+    "destination": [
+      {
+        "check": "emulator-5556 actual SDK ready",
+        "passed": true
+      },
+      {
+        "check": "emulator-5556 old room restored",
+        "passed": true
+      },
+      {
+        "check": "emulator-5556 previous test participation ended",
+        "passed": true
+      },
+      {
+        "check": "emulator-5558 actual SDK ready",
+        "passed": true
+      },
+      {
+        "check": "emulator-5558 old room restored",
+        "passed": true
+      },
+      {
+        "check": "emulator-5558 previous test participation ended",
+        "passed": true
+      },
+      {
+        "check": "different native destinations before test",
+        "passed": true
+      },
+      {
+        "check": "leader prompt before any plan publication",
+        "passed": true
+      },
+      {
+        "check": "leader change never publishes without confirmation",
+        "passed": true
+      },
+      {
+        "check": "leader decline keeps own destination private",
+        "passed": true
+      },
+      {
+        "check": "leader can reopen sharing confirmation",
+        "passed": true
+      },
+      {
+        "check": "leader explicit confirmation publishes canonical destination",
+        "passed": true
+      },
+      {
+        "check": "recipient receives confirmation instead of automatic route",
+        "passed": true
+      },
+      {
+        "check": "legacy auto-follow grant cannot write navigation",
+        "passed": true
+      },
+      {
+        "check": "recipient can keep current destination",
+        "passed": true
+      },
+      {
+        "check": "decline and repeated snapshots preserve native route",
+        "passed": true
+      },
+      {
+        "check": "decline survives process restart without route write",
+        "passed": true
+      },
+      {
+        "check": "recipient can reconsider the same proposal",
+        "passed": true
+      },
+      {
+        "check": "recipient approval writes exactly once and native readback confirms",
+        "passed": true
+      },
+      {
+        "check": "fresh native UI search destination matches recipient coordinates and identifiers exactly",
+        "passed": true
+      },
+      {
+        "check": "both real FusedLocation samples and native ETAs are shared",
+        "passed": true
+      },
+      {
+        "check": "repeated snapshots never duplicate approved write",
+        "passed": true
+      },
+      {
+        "check": "every subsequent leader change needs confirmation",
+        "passed": true
+      },
+      {
+        "check": "second leader destination stays local until confirmed",
+        "passed": true
+      },
+      {
+        "check": "second recipient proposal awaits separate confirmation",
+        "passed": true
+      },
+      {
+        "check": "previous approval does not authorize new destination",
+        "passed": true
+      },
+      {
+        "check": "new leader proposal detected while recipient deciding",
+        "passed": true
+      },
+      {
+        "check": "superseding revision delivered",
+        "passed": true
+      },
+      {
+        "check": "stale confirmation cannot apply a superseded destination",
+        "passed": true
+      },
+      {
+        "check": "latest leader proposal ready",
+        "passed": true
+      },
+      {
+        "check": "latest recipient proposal ready",
+        "passed": true
+      },
+      {
+        "check": "background notification never changes native destination",
+        "passed": true
+      },
+      {
+        "check": "actual platform driving restrictions delivered",
+        "passed": true
+      },
+      {
+        "check": "driving restrictions do not bypass destination confirmation",
+        "passed": true
+      },
+      {
+        "check": "short confirmation works under platform driving restrictions",
+        "passed": true
+      },
+      {
+        "check": "parked controls restored",
+        "passed": true
+      },
+      {
+        "check": "restart after approval does not replay request",
+        "passed": true
+      },
+      {
+        "check": "manual participant route change is preserved",
+        "passed": true
+      },
+      {
+        "check": "manual route is never silently overwritten",
+        "passed": true
+      },
+      {
+        "check": "manual override can be explicitly reconsidered",
+        "passed": true
+      },
+      {
+        "check": "final destination matches after fresh confirmation",
+        "passed": true
+      },
+      {
+        "check": "review room has two live locations and ETAs",
+        "passed": true
+      }
+    ],
+    "background": [
+      {
+        "check": "emulator-5556 SDK ready",
+        "passed": true
+      },
+      {
+        "check": "emulator-5556 old room ended",
+        "passed": true
+      },
+      {
+        "check": "emulator-5558 SDK ready",
+        "passed": true
+      },
+      {
+        "check": "emulator-5558 old room ended",
+        "passed": true
+      },
+      {
+        "check": "fresh native search results settled",
+        "passed": true
+      },
+      {
+        "check": "emulator-5556 heads-up over native: 나만 변경",
+        "passed": true
+      },
+      {
+        "check": "leader-decline stays on native navigation",
+        "passed": true
+      },
+      {
+        "check": "leader decline does not publish destination",
+        "passed": true
+      },
+      {
+        "check": "emulator-5556 heads-up over native: 일행에게 요청",
+        "passed": true
+      },
+      {
+        "check": "leader-approve stays on native navigation",
+        "passed": true
+      },
+      {
+        "check": "leader publishes approved target",
+        "passed": true
+      },
+      {
+        "check": "emulator-5558 heads-up over native: 현재 목적지 유지",
+        "passed": true
+      },
+      {
+        "check": "follower-decline stays on native navigation",
+        "passed": true
+      },
+      {
+        "check": "decline keeps native destination and issues no write",
+        "passed": true
+      },
+      {
+        "check": "Drive UX restrictions active",
+        "passed": true
+      },
+      {
+        "check": "emulator-5558 heads-up over native: 목적지 변경",
+        "passed": true
+      },
+      {
+        "check": "follower-approve-drive stays on native navigation",
+        "passed": true
+      },
+      {
+        "check": "background approval verified by native readbacks",
+        "passed": true
+      },
+      {
+        "check": "exact source destination matches; one SDK write",
+        "passed": true
+      },
+      {
+        "check": "both actual SDK location and ETA shared in background",
+        "passed": true
+      }
+    ],
+    "waypoints": [
+      {
+        "check": "emulator-5556 SDK ready",
+        "passed": true
+      },
+      {
+        "check": "emulator-5558 SDK ready",
+        "passed": true
+      },
+      {
+        "check": "same destination and empty waypoints",
+        "passed": true
+      },
+      {
+        "check": "personal waypoint received from real SDK",
+        "passed": true
+      },
+      {
+        "check": "initial destination prompt",
+        "passed": true
+      },
+      {
+        "check": "destination published",
+        "passed": true
+      },
+      {
+        "check": "participant joined",
+        "passed": true
+      },
+      {
+        "check": "proposal LEADER_STOP",
+        "passed": true
+      },
+      {
+        "check": "leader native addition does not publish without consent",
+        "passed": true
+      },
+      {
+        "check": "native heads-up emulator-5556 일행에게 요청",
+        "passed": true
+      },
+      {
+        "check": "proposal FOLLOWER_STOP",
+        "passed": true
+      },
+      {
+        "check": "recipient request never writes before approval",
+        "passed": true
+      },
+      {
+        "check": "native heads-up emulator-5558 경유지 추가",
+        "passed": true
+      },
+      {
+        "check": "waypoint approval confirms real native readback",
+        "passed": true
+      },
+      {
+        "check": "one SDK write preserves final destination and personal waypoint order",
+        "passed": true
+      },
+      {
+        "check": "restart does not add the accepted visit again",
+        "passed": true
+      },
+      {
+        "check": "emulator-5556 SDK ready after UI update",
+        "passed": true
+      },
+      {
+        "check": "emulator-5558 SDK ready after UI update",
+        "passed": true
+      },
+      {
+        "check": "capacity conflict is visible and preserves both existing waypoints",
+        "passed": true
+      },
+      {
+        "check": "decline persists",
+        "passed": true
+      },
+      {
+        "check": "decline survives restart with no SDK write",
+        "passed": true
+      },
+      {
+        "check": "native waypoint removal remains removed",
+        "passed": true
+      },
+      {
+        "check": "native removal and refresh never restore previous visits",
+        "passed": true
+      },
+      {
+        "check": "location and final-destination ETA remain shared after stop choice",
+        "passed": true
+      }
+    ]
+  },
+  "native_destination_exact_match": {
+    "source": {
+      "latitude": 37.41289678,
+      "longitude": 127.09383464,
+      "name": "42dot",
+      "address": "수정구 시흥동",
+      "poiId": "36khp37hh8gqcm5nqhe5",
+      "poiSubId": null,
+      "poiProvider": "",
+      "displayLatitude": null,
+      "displayLongitude": null,
+      "waypointBinding": "COORDINATES"
+    },
+    "recipient": {
+      "latitude": 37.41289678,
+      "longitude": 127.09383464,
+      "name": "42dot",
+      "address": "수정구 시흥동",
+      "poiId": "36khp37hh8gqcm5nqhe5",
+      "poiSubId": null,
+      "poiProvider": "",
+      "displayLatitude": null,
+      "displayLongitude": null,
+      "waypointBinding": "COORDINATES"
+    },
+    "exact_match": true
+  },
+  "waypoint_confirmation": "Destination coordinates and ordered waypoint POI ID/name/address readbacks; this emulator reports waypoint coordinates as 0,0",
+  "waypoint_validation_phases": "SDK add/personal-order checks followed by capacity UI improvement and restart/removal/ETA checks; repeated readiness checks deduplicated.",
+  "apk_sha256": "bf818705f3168b08a1bce5dcf0d273245b8c12de4179957156b093794fcdac07",
+  "scope": "Actual SDK on two emulators. GPS/gear/speed are emulator inputs; no real-road or arbitrary-provider claim.",
+  "waypoint_readbacks": {
+    "destination_unchanged": {
+      "latitude": 37.53409444,
+      "longitude": 127.31614166,
+      "name": "두물머리주차장",
+      "address": "양평군 양서면",
+      "poiId": "36kgs2hc7kc6cm5nqhe3",
+      "poiSubId": null,
+      "poiProvider": "",
+      "displayLatitude": null,
+      "displayLongitude": null,
+      "waypointBinding": "COORDINATES"
+    },
+    "before": [
+      {
+        "latitude": 0.0,
+        "longitude": 0.0,
+        "name": "양수역 경의중앙선",
+        "address": "양평군 양서면",
+        "poiId": "36kgs2gmrfm5cm5nqhe3",
+        "poiSubId": null,
+        "poiProvider": "",
+        "displayLatitude": null,
+        "displayLongitude": null,
+        "waypointBinding": "CONNECT_2_1_POI"
+      }
+    ],
+    "after": [
+      {
+        "latitude": 0.0,
+        "longitude": 0.0,
+        "name": "양수역 경의중앙선",
+        "address": "양평군 양서면",
+        "poiId": "36kgs2gmrfm5cm5nqhe3",
+        "poiSubId": null,
+        "poiProvider": "",
+        "displayLatitude": null,
+        "displayLongitude": null,
+        "waypointBinding": "CONNECT_2_1_POI"
+      },
+      {
+        "latitude": 0.0,
+        "longitude": 0.0,
+        "name": "세미원",
+        "address": "양평군 양서면",
+        "poiId": "36kgs2gd98k3cm5nqhe3",
+        "poiSubId": null,
+        "poiProvider": "",
+        "displayLatitude": null,
+        "displayLongitude": null,
+        "waypointBinding": "CONNECT_2_1_POI"
+      }
+    ],
+    "sdk_write_delta": 1
+  }
+}

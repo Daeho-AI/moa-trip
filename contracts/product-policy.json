@@ -1,5 +1,5 @@
 {
-  "designVersion": "0.4.0",
+  "designVersion": "0.5.0",
   "product": "MoaTrip",
   "status": "CORE_IMPLEMENTED_EXTENSIONS_PLANNED",
   "verifiedOn": "2026-11-13",
@@ -44,7 +44,7 @@
     "pauseFollowingOnLocalChange": true,
     "forceWriteRetry": false,
     "requireReadbackForApplied": true,
-    "sharedStopFollowRequiresDestinationFollow": true,
+    "sharedStopFollowRequiresDestinationFollow": false,
     "newEnRouteStopRequiresVehicleChoice": true,
     "restoreCompletedVisits": false,
     "waypointOrderRequiresExplicitMergeWithPersonalStops": true,
@@ -59,7 +59,11 @@
     "approvalBoundToRoomEpochRevisionAndNativeRoute": true,
     "replayAcceptedDecisionOnReconnect": false,
     "declinePersists": true,
-    "backgroundNotificationOpensConfirmation": true
+    "backgroundNotificationOpensConfirmation": true,
+    "waypointProposalTtlSec": 600,
+    "waypointApplyTimeoutMs": 30000,
+    "sharedStopRequiresSameNativeDestination": true,
+    "sharedStopsAreOneOffProposals": true
   },
   "assembly": {
     "requireFullParticipantCoverage": true,

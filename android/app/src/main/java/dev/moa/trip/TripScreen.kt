@@ -49,6 +49,13 @@ fun syncText(state: String)=when(state) {
     else->"확인 중"
 }
 private fun clockText(time: Long)=SimpleDateFormat("HH:mm",Locale.KOREA).format(Date(time))
+private fun stopText(state: String?)=when(state) {
+    "APPLIED","PRESENT" -> "경유지 반영 확인"
+    "DECLINED" -> "이번 경유지는 건너뛰기"
+    "ACCEPTED","APPLYING" -> "경유지 반영 확인 중"
+    "WRITE_UNCERTAIN" -> "순정 경유지 확인 필요"
+    else -> "차량별 들르기 선택"
+}
 
 @Composable
 fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)->Unit) {
@@ -111,7 +118,7 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
                         val wide=maxWidth>=1080.dp
                         val summary: @Composable ()->Unit={ DestinationPanel(snap,ui,sdk,live,
                             onReview={if(ui.prompt!=null) deferredPrompt=null else app.trip.reconsiderDestination()},
-                            onShare={app.trip.toggleBroadcast()}) }
+                            onShare={app.trip.toggleBroadcast()},onStop={app.trip.shareStop(it)}) }
                         val members: @Composable ()->Unit={ VehicleList(snap,ui,sdk,live,now) }
                         if(wide) Row(Modifier.fillMaxSize().padding(vertical=28.dp),horizontalArrangement=Arrangement.spacedBy(36.dp)) {
                             Column(Modifier.weight(0.38f).fillMaxHeight().verticalScroll(rememberScrollState())) { summary() }
@@ -133,16 +140,20 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
         if(prompt!=null && sdk.uxCanConfirm && prompt!=deferredPrompt && !settings && !connection && !invite && !end) {
             key(prompt) {
                 ConfirmPanel(
-                    title=if(prompt.kind=="LEADER") "일행에게도 변경을 요청할까요?" else "목적지를 변경할까요?",
-                    confirm=if(prompt.kind=="LEADER") "일행에게 요청" else "목적지 변경",
-                    cancel=if(prompt.kind=="LEADER") "나만 변경" else "현재 목적지 유지",
+                    title=prompt.title,
+                    confirm=prompt.confirmLabel,
+                    cancel=prompt.cancelLabel,
                     enabled=!ui.busy && sdk.uxCanConfirm,
                     onConfirm={app.trip.respondDestination(prompt,true)},
                     onCancel={app.trip.respondDestination(prompt,false)},
-                    onDismiss={deferredPrompt=prompt}) {
+                    onDismiss={deferredPrompt=prompt},confirmEnabled=!prompt.stopFull && !ui.busy && sdk.uxCanConfirm) {
                     Text(prompt.target.name.take(sdk.uxMaxStringLength),fontSize=32.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
                     if(sdk.parked && prompt.target.address.isNotBlank()) Text(prompt.target.address.take(sdk.uxMaxStringLength),fontSize=20.sp,color=colors.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
-                    Text(if(prompt.kind=="LEADER") "각 차량이 확인하면 목적지가 변경됩니다."
+                    Text(if(prompt.stopFull) "경유지는 최대 2곳입니다. 순정 내비에서 내 경유지를 정리한 뒤 확인하세요."
+                        else if(prompt.isStop) { if(prompt.isLeader) "각 차량이 들를지 직접 선택합니다."
+                        else if(prompt.localRoute.waypoints.isNotEmpty()) "내 경유지 다음에 추가합니다. 목적지는 유지됩니다."
+                        else "목적지는 유지하고, 이곳을 먼저 들릅니다." }
+                        else if(prompt.kind=="LEADER") "각 차량이 확인하면 목적지가 변경됩니다."
                         else if(prompt.localRoute.waypoints.isNotEmpty()) "내 경유지 ${prompt.localRoute.waypoints.size}개는 유지됩니다."
                         else "확인하면 내 순정 내비에 등록됩니다.",fontSize=20.sp,color=colors.onSurfaceVariant)
                     ui.error?.let { Text(it,fontSize=18.sp,color=colors.error,maxLines=2,overflow=TextOverflow.Ellipsis) }
@@ -184,7 +195,7 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
     }
 }
 
-@Composable private fun DestinationPanel(snap: TripSnapshot,ui: TripUiState,sdk: GatewayState,live: Boolean,onReview: ()->Unit,onShare: ()->Unit) {
+@Composable private fun DestinationPanel(snap: TripSnapshot,ui: TripUiState,sdk: GatewayState,live: Boolean,onReview: ()->Unit,onShare: ()->Unit,onStop: (Place)->Unit) {
     val colors=MaterialTheme.colorScheme
     Surface(Modifier.fillMaxWidth(),shape=RoundedCornerShape(16.dp),color=colors.surfaceVariant,contentColor=colors.onSurface) {
         Column(Modifier.padding(28.dp),verticalArrangement=Arrangement.spacedBy(20.dp)) {
@@ -195,7 +206,7 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
             Text(snap.room.destination?.name?.take(sdk.uxMaxStringLength) ?: "아직 정하지 않았어요",fontSize=36.sp,lineHeight=44.sp,fontWeight=FontWeight.SemiBold,maxLines=3,overflow=TextOverflow.Ellipsis)
             snap.room.destination?.address?.takeIf { it.isNotBlank() }?.let { Text(it.take(sdk.uxMaxStringLength),fontSize=21.sp,color=colors.onSurfaceVariant,maxLines=2,overflow=TextOverflow.Ellipsis) }
             HorizontalDivider(color=colors.outlineVariant)
-            Text(if(ui.prompt!=null) "새 목적지 요청이 있습니다" else syncText(ui.syncState),fontSize=22.sp,fontWeight=FontWeight.Medium)
+            Text(if(ui.prompt?.isStop==true) "함께 들를 경유지 요청이 있습니다" else if(ui.prompt!=null) "새 목적지 요청이 있습니다" else syncText(ui.syncState),fontSize=22.sp,fontWeight=FontWeight.Medium)
             if(ui.syncState=="WRITE_UNCERTAIN")
                 Text(ui.syncReason.take(sdk.uxMaxStringLength),fontSize=20.sp,color=colors.onSurfaceVariant,maxLines=3,overflow=TextOverflow.Ellipsis)
             if(!samePlace(snap.room.destination,sdk.destination) && sdk.destination!=null)
@@ -203,6 +214,14 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
             if(ui.syncState!="WRITE_UNCERTAIN" && (ui.prompt!=null || (!samePlace(snap.room.destination,sdk.destination) && (if(snap.self.leader) sdk.destination!=null else snap.room.destination!=null))))
                 QuietButton(if(ui.prompt!=null) "변경 요청 확인" else if(snap.self.leader) "현재 목적지 공유" else "목적지 다시 확인",!ui.busy && sdk.uxKnown && (!snap.self.leader || snap.room.leaderBroadcastEnabled),onReview)
             Spacer(Modifier.height(8.dp))
+            snap.room.stopProposal?.let { stop ->
+                Text("함께 들를 곳 · ${stop.place.name}".take(sdk.uxMaxStringLength),fontSize=21.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
+                val decision=snap.self.stopDecision?.takeIf { it.stopId==stop.id }
+                Text(stopText(decision?.state),fontSize=18.sp,color=colors.onSurfaceVariant)
+            }
+            if(snap.self.leader && sdk.parked && samePlace(snap.room.destination,sdk.destination)) sdk.waypoints.take(2).forEach { stop ->
+                QuietButton("경유지 공유 · ${stop.name}".take(sdk.uxMaxStringLength),!ui.busy && snap.room.leaderBroadcastEnabled && ui.syncState!="WRITE_UNCERTAIN") { onStop(stop) }
+            }
             val time=snap.assembly.latestKnownArrivalAt
             Text("함께 도착",fontSize=21.sp,color=colors.onSurfaceVariant)
             Text(if(live && snap.assembly.complete && time!=null) clockText(time) else "확인 중",fontSize=44.sp,fontWeight=FontWeight.Medium)
@@ -231,6 +250,9 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
                     Text(if(member.id==snap.self.id) "  내 차" else if(member.leader) "  리더" else "",fontSize=18.sp,color=colors.onSurfaceVariant)
                 }
                 Text(if(member.participationState=="FINISHED") "여행 종료" else syncText(member.sync.state),fontSize=20.sp,color=colors.onSurfaceVariant)
+                member.stopDecision?.takeIf { it.stopId==snap.room.stopProposal?.id }?.let {
+                    Text(stopText(it.state),fontSize=18.sp,color=colors.onSurfaceVariant)
+                }
                 val p=member.location
                 val elapsed=(now-ui.receivedAtMs).coerceAtLeast(0)
                 val detail=if(live && p!=null && elapsed+p.ageMs<60000) {
@@ -274,7 +296,7 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
     }
 }
 @Composable private fun ConfirmPanel(title: String,confirm: String,cancel: String?,enabled: Boolean,
-    onConfirm: ()->Unit,onCancel: ()->Unit,onDismiss: ()->Unit,content: @Composable ColumnScope.()->Unit) {
+    onConfirm: ()->Unit,onCancel: ()->Unit,onDismiss: ()->Unit,confirmEnabled: Boolean=enabled,content: @Composable ColumnScope.()->Unit) {
     Dialog(onDismissRequest=onDismiss,properties=DialogProperties(usePlatformDefaultWidth=false)) {
         Surface(Modifier.widthIn(max=760.dp).fillMaxWidth().padding(24.dp),shape=RoundedCornerShape(20.dp),color=MaterialTheme.colorScheme.surface,tonalElevation=0.dp) {
             Column(Modifier.padding(32.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
@@ -282,7 +304,7 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
                 content()
                 Row(Modifier.fillMaxWidth().padding(top=8.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
                     if(cancel!=null) ActionButton(cancel,false,enabled,Modifier.weight(1f),onCancel)
-                    ActionButton(confirm,true,enabled,Modifier.weight(1f),onConfirm)
+                    ActionButton(confirm,true,confirmEnabled,Modifier.weight(1f),onConfirm)
                 }
             }
         }

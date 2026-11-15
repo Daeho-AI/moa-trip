@@ -45,14 +45,13 @@ class TripService: Service() {
                 val pending=PendingIntent.getBroadcast(context,0,intent,PendingIntent.FLAG_IMMUTABLE)
                 return Notification.Action.Builder(null,label,pending).build()
             }
-            val leader=prompt.kind=="LEADER"
             // A route-change consent event: no messaging/call/emergency or full-screen intent.
             runCatching { manager.notify(7302,Notification.Builder(context,channel).setSmallIcon(R.drawable.ic_moatrip)
                 .setCategory(Notification.CATEGORY_NAVIGATION).setVisibility(Notification.VISIBILITY_PRIVATE)
-                .setContentTitle(if(leader) "일행에게도 변경을 요청할까요?" else "목적지를 변경할까요?")
-                .setContentText(prompt.target.name.take(app.gateway.state.value.uxMaxStringLength.coerceIn(1,40)))
-                .addAction(action(false,if(leader) "나만 변경" else "현재 목적지 유지"))
-                .addAction(action(true,if(leader) "일행에게 요청" else "목적지 변경"))
+                .setContentTitle(prompt.title)
+                .setContentText((if(prompt.stopFull) "경유지 최대 2곳 · 내 경유지 정리 후 확인" else prompt.target.name+if(prompt.isStop && !prompt.isLeader && prompt.localRoute.waypoints.isNotEmpty()) " · 내 경유지 다음에 추가" else "").take(app.gateway.state.value.uxMaxStringLength.coerceIn(1,40)))
+                .addAction(action(false,prompt.cancelLabel))
+                .apply { if(!prompt.stopFull) addAction(action(true,prompt.confirmLabel)) }
                 .setContentIntent(open).setOnlyAlertOnce(false).setAutoCancel(false).build()) }
         }
     }
