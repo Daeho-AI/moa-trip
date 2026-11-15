@@ -1,11 +1,11 @@
 {
   "version": "0.4.3",
   "apk_sha256": "91b09bd3f5c82225a4e38376994429d4115c6146840c7682b8728bb7e13de5dd",
-  "video_sha256": "c187345bd42ea7893625e8e24c182247d07c3839f3bbc1057b989d365323cd7b",
+  "video_sha256": "1fe426d60da4ff56d86b840f5e40285c7e555daeba9f83c6dd4bdc461b16d502",
   "video_seconds": 116.3,
   "video_pixels": "2560x1200",
   "video_fps": 30,
-  "video_bytes": 2381716,
+  "video_bytes": 2375980,
   "public_player": "https://daeho-ai.github.io/moa-trip/",
   "native_search_matching": {
     "build": "v0.4.3 debug: actual heads-up approval, native SDK readbacks",
