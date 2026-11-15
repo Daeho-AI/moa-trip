@@ -1,5 +1,4 @@
 {
-  "apk_sha256": "77bdcae018a121dd347e8769eebfc448dfa431c74dc8cfeae37b29abc05d912d",
   "video_sha256": "d02a8df311c4f9a945b474564ffab03a045f59619ad31efeafc4789cf3e9eae2",
   "video_seconds": 171.0,
   "video_pixels": "2560x1200",
@@ -19,5 +18,8 @@
   "release_debuggable": false,
   "recording_invite_visible": true,
   "recording_invites_expired_after_capture": true,
-  "scope": "Park-state actual release APK recording on two emulators. GPS is test input. Drive 30 km/h is separately verified in functional SDK checks."
+  "scope": "Park-state actual release APK recording on two emulators. GPS is test input. Drive 30 km/h is separately verified in functional SDK checks.",
+  "recorded_apk_sha256": "77bdcae018a121dd347e8769eebfc448dfa431c74dc8cfeae37b29abc05d912d",
+  "current_apk_sha256": "fcbc27d022ff1f19aedea1fdd4ebf9bc3d7a02383117e0e036db30da49f01a9b",
+  "current_apk_additional_checks": "server-unavailable.json"
 }

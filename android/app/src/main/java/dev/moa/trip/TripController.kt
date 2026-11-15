@@ -16,7 +16,7 @@ import java.util.UUID
 
 data class TripUiState(val snapshot: TripSnapshot?=null,val connected: Boolean=false,val receivedAtMs: Long=0,
     val busy: Boolean=false,val error: String?=null,val syncState: String="WAITING_DESTINATION",val syncReason: String="",
-    val prompt: DestinationPrompt?=null)
+    val prompt: DestinationPrompt?=null,val serverUnavailable: Boolean=false)
 
 class TripController(private val context: Context,private val scope: CoroutineScope,private val gateway: PleosGateway) {
     val settings=SecureSettings(context)
@@ -107,17 +107,24 @@ class TripController(private val context: Context,private val scope: CoroutineSc
             }
         }
     }
-    private fun action(block: suspend ()->Unit) { scope.launch {
-        mutable.update { it.copy(busy=true,error=null) }
-        runCatching { actions.withLock { block() } }.onFailure(::failure)
+    private fun action(serverNotice: Boolean=false,block: suspend ()->Unit) { scope.launch {
+        mutable.update { it.copy(busy=true,error=null,serverUnavailable=false) }
+        runCatching { actions.withLock { block() } }.onFailure { error ->
+            failure(error)
+            if(serverNotice && error is ServerUnavailable)
+                mutable.update { it.copy(serverUnavailable=true,error=null) }
+        }
         mutable.update { it.copy(busy=false) }
     } }
+    fun dismissServerNotice() { mutable.update { it.copy(serverUnavailable=false) } }
     fun configureServer(url: String) { runCatching { api.setBase(url); mutable.value=TripUiState() }.onFailure(::failure) }
-    fun create(title: String,nickname: String) = action {
+    fun create(title: String,nickname: String) = action(serverNotice=true) {
+        api.requireAvailable()
         api.ensureSession(); flushFinish()
         attach(api.decode(api.request("POST","/v1/rooms",JSONObject().put("title",title).put("nickname",nickname))))
     }
-    fun join(code: String,nickname: String)=action {
+    fun join(code: String,nickname: String)=action(serverNotice=true) {
+        api.requireAvailable()
         api.ensureSession(); flushFinish()
         attach(api.decode(api.request("POST","/v1/rooms/join",JSONObject().put("code",code.replace("-","").uppercase()).put("nickname",nickname))))
     }

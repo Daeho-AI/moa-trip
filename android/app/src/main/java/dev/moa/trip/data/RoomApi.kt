@@ -12,11 +12,14 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class ApiFailure(val code: Int,message: String): IOException(message)
+class ServerUnavailable(cause: Throwable?=null): IOException("여행방 서버에 연결할 수 없습니다.",cause)
 
 class RoomApi(private val settings: SecureSettings,private val scope: CoroutineScope) {
     val json=Json { ignoreUnknownKeys=true; encodeDefaults=true }
     private val client=OkHttpClient.Builder().connectTimeout(5,TimeUnit.SECONDS).readTimeout(8,TimeUnit.SECONDS)
         .callTimeout(10,TimeUnit.SECONDS).pingInterval(10,TimeUnit.SECONDS).build()
+    private val healthClient=client.newBuilder().connectTimeout(2,TimeUnit.SECONDS).readTimeout(2,TimeUnit.SECONDS)
+        .callTimeout(3,TimeUnit.SECONDS).retryOnConnectionFailure(false).build()
     private var socket: WebSocket?=null
     private var generation=0
     private var reconnect: Job?=null
@@ -34,15 +37,33 @@ class RoomApi(private val settings: SecureSettings,private val scope: CoroutineS
         if(base!=url) { disconnect(); settings.clearSession(); settings.prefs.edit().putString("serverUrl",url).apply() }
     }
     suspend fun request(method: String,path: String,body: JSONObject?=null,auth: Boolean=true): JSONObject = withContext(Dispatchers.IO) {
-        check(base.isNotBlank()) { "서버 주소를 설정하세요" }
+        if(base.isBlank()) throw ServerUnavailable()
         val builder=Request.Builder().url(base+path)
         if(auth) builder.header("Authorization","Bearer "+(settings.token() ?: error("세션 없음")))
         builder.method(method,if(method in setOf("GET","HEAD")) null else (body?.toString() ?: "{}").toRequestBody("application/json".toMediaType()))
-        client.newCall(builder.build()).execute().use { response ->
-            val text=response.body?.string() ?: "{}"
-            if(!response.isSuccessful) throw ApiFailure(response.code,runCatching { JSONObject(text).optString("detail") }.getOrDefault("서버 오류 ${response.code}"))
-            JSONObject(text)
-        }
+        try {
+            client.newCall(builder.build()).execute().use { response ->
+                val text=response.body?.string() ?: "{}"
+                if(response.code>=500 || response.code==408) throw ServerUnavailable()
+                if(!response.isSuccessful) throw ApiFailure(response.code,
+                    if(path=="/v1/rooms/join" && response.code==404) "초대 코드를 확인해 주세요."
+                    else runCatching { JSONObject(text).optString("detail") }.getOrDefault("서버 오류 ${response.code}"))
+                JSONObject(text)
+            }
+        } catch(e: ApiFailure) { throw e
+        } catch(e: IOException) { throw ServerUnavailable(e)
+        } catch(e: org.json.JSONException) { throw ServerUnavailable(e) }
+    }
+    suspend fun requireAvailable() = withContext(Dispatchers.IO) {
+        if(base.isBlank()) throw ServerUnavailable()
+        try {
+            healthClient.newCall(Request.Builder().url(base+"/health").build()).execute().use { response ->
+                if(!response.isSuccessful) throw ServerUnavailable()
+                val value=JSONObject(response.body?.string() ?: "{}")
+                if(value.optString("status")!="ok" || value.optString("source")!="MoaTrip") throw ServerUnavailable()
+            }
+        } catch(e: IOException) { throw ServerUnavailable(e)
+        } catch(e: org.json.JSONException) { throw ServerUnavailable(e) }
     }
     suspend fun ensureSession() {
         if(settings.token()==null) settings.saveToken(request("POST","/v1/device-sessions",auth=false).getString("token"))

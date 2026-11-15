@@ -1,0 +1,62 @@
+{
+  "apk_sha256": "fcbc27d022ff1f19aedea1fdd4ebf9bc3d7a02383117e0e036db30da49f01a9b",
+  "checks": [
+    {
+      "check": "Offline target has no listener",
+      "passed": true
+    },
+    {
+      "check": "emulator-5556 signed non-debuggable release installed",
+      "passed": true
+    },
+    {
+      "check": "emulator-5558 signed non-debuggable release installed",
+      "passed": true
+    },
+    {
+      "check": "Home and input screens remain available without server",
+      "passed": true
+    },
+    {
+      "check": "Offline create shows connection notice",
+      "passed": true
+    },
+    {
+      "check": "Unavailable server never creates a room",
+      "passed": true
+    },
+    {
+      "check": "Dismissing notice preserves entered trip name",
+      "passed": true
+    },
+    {
+      "check": "Offline join shows same notice",
+      "passed": true
+    },
+    {
+      "check": "Notice opens connection settings",
+      "passed": true
+    },
+    {
+      "check": "Invalid invite is distinct from server outage",
+      "passed": true
+    },
+    {
+      "check": "Restored server allows real room creation",
+      "passed": true
+    },
+    {
+      "check": "emulator-5556 joins actual two-car room after restored server connection",
+      "passed": true
+    },
+    {
+      "check": "emulator-5558 joins actual two-car room after restored server connection",
+      "passed": true
+    },
+    {
+      "check": "Test participants finished and invitation expired",
+      "passed": true
+    }
+  ],
+  "scope": "Actual signed release UI on two Pleos emulators. Closed local port simulates unreachable room server. No public server deployed."
+}

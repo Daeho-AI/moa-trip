@@ -179,6 +179,15 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
             {app.trip.finish();end=false},{end=false},{end=false}) {
             Text("내 위치 공유가 종료됩니다. 현재 내비 안내와 일행의 여행은 계속됩니다.",fontSize=22.sp)
         }
+        if(ui.serverUnavailable && sdk.parked && !connection) {
+            ConfirmPanel("여행방 서버 연결 안내","확인","연결 설정",true,
+                {app.trip.dismissServerNotice()},
+                {app.trip.dismissServerNotice();connection=true},
+                {app.trip.dismissServerNotice()}) {
+                Text("여행방 서버에 연결되지 않아 방 만들기와 참여 기능을 사용할 수 없습니다.",fontSize=24.sp)
+                Text("화면은 계속 확인할 수 있습니다. 실제 위치·도착 정보 공유는 서버에 연결한 뒤 이용할 수 있습니다.",fontSize=20.sp,color=colors.onSurfaceVariant)
+            }
+        }
         if(connection) ConfirmPanel("연결 설정","확인",null,true,{connection=false},{},{connection=false}) {
             Column(Modifier.heightIn(max=440.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(18.dp)) {
                 if(snap==null) {

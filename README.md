@@ -37,7 +37,9 @@ flowchart LR
 
 ## 실행 방법
 
-**Pleos 에뮬레이터 두 대와 PC에서 실행하는 여행방 서버가 필요합니다.** 실제 시연은 Linux 워크스테이션에서 검증했습니다. [Linux 설치·실행 안내](docs/LINUX.md)
+**화면 확인:** Pleos 에뮬레이터에 APK를 설치하면 시작 화면과 여행방 생성·참여 입력 화면을 볼 수 있습니다. 서버가 연결되지 않은 상태에서 방 만들기나 참여를 누르면 연결 안내가 표시됩니다.
+
+**실제 기능 체험:** Pleos 에뮬레이터 두 대와 PC에서 실행하는 여행방 서버가 필요합니다. 시연 영상은 이 환경에서 촬영했습니다. [Linux 설치·실행 안내](docs/LINUX.md)
 
 1. 저장소를 내려받고 공식 Pleos Connect 에뮬레이터를 준비합니다.
 2. 서버를 실행합니다. Windows는 `Start-Server.cmd`, Linux는 `source tools/linux_env.sh` 후 `python3 tools/start_linux_server.py`를 사용합니다.
