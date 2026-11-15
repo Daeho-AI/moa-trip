@@ -2,7 +2,7 @@
 
 **각 차량의 순정 내비를 하나의 여행방으로 연결해, 목적지와 경유지를 함께 정하고 일행의 위치와 도착 시간을 확인하는 여행 앱입니다.**
 
-[**▶ 시연 영상 보기**](https://daeho-ai.github.io/moa-trip/) · [**APK 다운로드**](https://github.com/Daeho-AI/moa-trip/releases/latest/download/모아_모아트립_release.apk)
+[**▶ 시연 영상 보기**](https://daeho-ai.github.io/moa-trip/) · [**APK 다운로드**](https://github.com/Daeho-AI/moa-trip/raw/refs/heads/main/apk/모아_모아트립_release.apk)
 
 [![모아트립 실제 시연 — 방장 차량과 참여 차량](docs/video/poster.jpg)](https://daeho-ai.github.io/moa-trip/)
 
