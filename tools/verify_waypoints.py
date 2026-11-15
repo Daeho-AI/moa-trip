@@ -32,7 +32,7 @@ def run():
     u.native_search_42dot(B,'양수역','양수역 경의중앙선',settle=1,as_waypoint=True)
     v.wait('personal waypoint received from real SDK',lambda:len(stops(B))==1,70)
     personal=stops(B)[0]
-    v.command(A,'trip','create',title='경유지 검증 여행',nickname='리더 차량')
+    v.command(A,'trip','create',title='경유지 검증 여행',nickname='방장 차량')
     v.wait('initial destination prompt',lambda:v.pending(A,'LEADER'))
     u.tap(A,'일행에게 요청');v.wait('destination published',lambda:v.revision()==1)
     v.command(B,'trip','join',code=v.read(A,True)['self']['inviteCode'],nickname='참여 차량')

@@ -15,7 +15,7 @@ def session(client):
 
 def room(client):
     host=session(client)
-    response=client.post('/v1/rooms',headers=host,json={'title':'테스트 여행','nickname':'리더'})
+    response=client.post('/v1/rooms',headers=host,json={'title':'테스트 여행','nickname':'방장'})
     assert response.status_code==200
     data=response.json()
     return host,data['room']['id'],data['self']['inviteCode']

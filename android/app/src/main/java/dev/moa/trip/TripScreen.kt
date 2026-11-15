@@ -36,9 +36,9 @@ private val Night=darkColorScheme(primary=Color(0xFFE4E5E8),onPrimary=Color(0xFF
 
 fun syncText(state: String)=when(state) {
     "WAITING_DESTINATION"->"목적지 대기"
-    "NEEDS_CONFIRMATION"->"변경 확인 대기"
+    "NEEDS_CONFIRMATION"->"변경 동의 대기"
     "WAITING_CONNECTION"->"내비 확인 중"
-    "APPLYING"->"목적지 등록 중"
+    "APPLYING"->"목적지 변경 중"
     "APPLIED","MATCHED"->"같은 목적지"
     "DECLINED","LOCAL_OVERRIDE"->"현재 목적지 유지"
     "WRITE_UNCERTAIN"->"순정 내비 확인 필요"
@@ -50,11 +50,11 @@ fun syncText(state: String)=when(state) {
 }
 private fun clockText(time: Long)=SimpleDateFormat("HH:mm",Locale.KOREA).format(Date(time))
 private fun stopText(state: String?)=when(state) {
-    "APPLIED","PRESENT" -> "경유지 반영 확인"
-    "DECLINED" -> "이번 경유지는 건너뛰기"
-    "ACCEPTED","APPLYING" -> "경유지 반영 확인 중"
-    "WRITE_UNCERTAIN" -> "순정 경유지 확인 필요"
-    else -> "차량별 들르기 선택"
+    "APPLIED","PRESENT" -> "경유지 추가 완료"
+    "DECLINED" -> "경유하지 않음"
+    "ACCEPTED","APPLYING" -> "경유지 추가 중"
+    "WRITE_UNCERTAIN" -> "내비에서 경유지를 확인해 주세요"
+    else -> "함께 들를지 선택해 주세요"
 }
 
 @Composable
@@ -110,7 +110,7 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
                                 sdk.parked && !ui.busy && nickname.isNotBlank() && (if(joinMode) code.replace("-","").length==8 else title.isNotBlank()),Modifier.fillMaxWidth()) {
                                 if(joinMode) app.trip.join(code,nickname.trim()) else app.trip.create(title.trim(),nickname.trim())
                             }
-                            Text(if(sdk.parked) "목적지는 차량마다 확인한 뒤 변경됩니다." else "주차 후 여행방을 만들거나 참여할 수 있습니다.",fontSize=20.sp,color=colors.onSurfaceVariant)
+                            Text(if(sdk.parked) "목적지 변경에 동의한 차량만 함께 바뀝니다." else "주차 후 여행방을 만들거나 참여할 수 있습니다.",fontSize=20.sp,color=colors.onSurfaceVariant)
                         }
                     }
                 } else {
@@ -153,9 +153,9 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
                         else if(prompt.isStop) { if(prompt.isLeader) "각 차량이 들를지 직접 선택합니다."
                         else if(prompt.localRoute.waypoints.isNotEmpty()) "내 경유지 다음에 추가합니다. 목적지는 유지됩니다."
                         else "목적지는 유지하고, 이곳을 먼저 들릅니다." }
-                        else if(prompt.kind=="LEADER") "각 차량이 확인하면 목적지가 변경됩니다."
+                        else if(prompt.kind=="LEADER") "변경에 동의한 차량만 목적지가 바뀝니다."
                         else if(prompt.localRoute.waypoints.isNotEmpty()) "내 경유지 ${prompt.localRoute.waypoints.size}개는 유지됩니다."
-                        else "확인하면 내 순정 내비에 등록됩니다.",fontSize=20.sp,color=colors.onSurfaceVariant)
+                        else "동의하면 내 차의 목적지가 바뀝니다.",fontSize=20.sp,color=colors.onSurfaceVariant)
                     ui.error?.let { Text(it,fontSize=18.sp,color=colors.error,maxLines=2,overflow=TextOverflow.Ellipsis) }
                 }
             }
@@ -167,13 +167,13 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
                 {app.trip.grant(location,eta,false);settings=false},{settings=false},{settings=false}) {
                 Choice("내 위치 공유",location){location=it}
                 Choice("내 도착 예정 시간 공유",eta){eta=it}
-                Text("목적지 변경 요청은 매번 직접 확인합니다.",fontSize=20.sp,color=colors.onSurfaceVariant)
+                Text("목적지를 바꿀지는 요청을 받을 때마다 선택합니다.",fontSize=20.sp,color=colors.onSurfaceVariant)
             }
         }
         if(invite && snap!=null) ConfirmPanel("일행 초대","확인",null,true,{invite=false},{},{invite=false}) {
             Text(snap.self.inviteCode.orEmpty().chunked(4).joinToString("  "),fontSize=42.sp,fontWeight=FontWeight.Medium)
             Text("코드를 입력하면 이 여행방에 참여할 수 있습니다.",fontSize=20.sp,color=colors.onSurfaceVariant)
-            snap.self.inviteExpiresAt?.let { Text("${clockText(it)}까지 유효 · 최대 5대",fontSize=20.sp,color=colors.onSurfaceVariant) }
+            snap.self.inviteExpiresAt?.let { Text("${clockText(it)}까지 유효",fontSize=20.sp,color=colors.onSurfaceVariant) }
         }
         if(end) ConfirmPanel("내 여행을 종료할까요?","여행 종료","계속 함께 가기",sdk.parked && !ui.busy,
             {app.trip.finish();end=false},{end=false},{end=false}) {
@@ -223,7 +223,7 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
                 QuietButton("경유지 공유 · ${stop.name}".take(sdk.uxMaxStringLength),!ui.busy && snap.room.leaderBroadcastEnabled && ui.syncState!="WRITE_UNCERTAIN") { onStop(stop) }
             }
             val time=snap.assembly.latestKnownArrivalAt
-            Text("함께 도착",fontSize=21.sp,color=colors.onSurfaceVariant)
+            Text("모두 모일 예상 시각",fontSize=21.sp,color=colors.onSurfaceVariant)
             Text(if(live && snap.assembly.complete && time!=null) clockText(time) else "확인 중",fontSize=44.sp,fontWeight=FontWeight.Medium)
             Text(if(live) "${snap.assembly.expected}대 중 ${snap.assembly.known}대 도착 시간 확인" else "연결 후 도착 시간을 갱신합니다",fontSize=20.sp,color=colors.onSurfaceVariant)
             if(snap.self.leader) {
@@ -247,7 +247,7 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(9.dp)) {
                 Row(verticalAlignment=Alignment.CenterVertically) {
                     Text(member.nickname,fontSize=24.sp,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f,false))
-                    Text(if(member.id==snap.self.id) "  내 차" else if(member.leader) "  리더" else "",fontSize=18.sp,color=colors.onSurfaceVariant)
+                    Text(if(member.id==snap.self.id) "  내 차" else if(member.leader) "  방장" else "",fontSize=18.sp,color=colors.onSurfaceVariant)
                 }
                 Text(if(member.participationState=="FINISHED") "여행 종료" else syncText(member.sync.state),fontSize=20.sp,color=colors.onSurfaceVariant)
                 member.stopDecision?.takeIf { it.stopId==snap.room.stopProposal?.id }?.let {
@@ -271,7 +271,7 @@ fun TripScreen(app: TripApplication,requestPermissions: ()->Unit,probe: (String)
             Column(horizontalAlignment=Alignment.End,verticalArrangement=Arrangement.spacedBy(6.dp)) {
                 val eta=member.eta?.takeIf { live && now-ui.receivedAtMs+it.ageMs<15000 }
                 Text(if(eta==null) "—" else clockText(eta.arrivalAt),fontSize=34.sp,fontWeight=FontWeight.Medium)
-                Text(if(eta==null) "도착 시간 대기" else "예상 도착",fontSize=17.sp,color=colors.onSurfaceVariant)
+                Text(if(eta==null) "도착 시간 확인 중" else "예상 도착",fontSize=17.sp,color=colors.onSurfaceVariant)
             }
         }
     }

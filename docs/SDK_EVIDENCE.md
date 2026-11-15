@@ -1,18 +1,18 @@
 # SDK 선택과 실제 데이터
 
-**v0.4 우선 규칙:** 리더의 공유 확인과 각 차량의 목적지 변경 확인이 매번 필요하다. 이전 자동 따라가기 동의로 내비를 쓰지 않는다. 현재 화면·동작은 [REVIEW_02](REVIEW_02.md)와 [IMPLEMENTATION](IMPLEMENTATION.md)을 따른다. 나머지 확장 설계는 구현 완료를 뜻하지 않는다.
+**구현 기준:** 방장의 공유 확인과 각 차량의 목적지 변경 확인이 매번 필요하다. 이전 자동 따라가기 동의로 내비를 쓰지 않는다. 현재 화면·동작은 [REVIEW_02](REVIEW_02.md)와 [IMPLEMENTATION](IMPLEMENTATION.md)을 따른다. 나머지 확장 설계는 구현 완료를 뜻하지 않는다.
 
 확인일: 2026-11-13. 공식 웹 문서, Pleos 공식 샘플과 이미 내려받은 SDK 소스를 대조했다. 아래 ‘명세 확인’은 이 여행 앱의 실제 실행 완료를 뜻하지 않는다.
 
 0.4.2에서 Linux의 독립된 에뮬레이터 2대, 실제 확인 버튼, 새 순정 검색 목적지의 좌표 일치까지 38개 수용 검사를 통과했다. 런타임에서 확인한 null sub-ID, 기본 최근 목록과 새 검색의 차이, 순정 안내 시작의 차이는 [구현 문서](IMPLEMENTATION.md)와 [검증 기록](VERIFICATION.md)에 분리한다.
 
-v0.2에서 목적지·경유지·주행 제한 공식 문서를 재확인하고, 아래 콜백의 실제 타입을 추가로 검토했다. 신규 기능을 제공한다고 가정한 SDK는 없다.
+설계 검토에서 목적지·경유지·주행 제한 공식 문서를 재확인하고, 아래 콜백의 실제 타입을 추가로 검토했다. 신규 기능을 제공한다고 가정한 SDK는 없다.
 
 ## 1. 사용할 SDK
 
 | 구성 | 선택 | 실제 입력·출력 | 모아트립에서 사용 |
 |---|---|---|---|
-| NaviHelper 3.0.5 | 필수 | 순정 목적지·경유지, 남은 시간·거리, 안내 상태, 목적지·경유지 설정 요청 | 리더 목적지 공유, 각 차 내비 반영, 차량별 ETA |
+| NaviHelper 3.0.5 | 필수 | 순정 목적지·경유지, 남은 시간·거리, 안내 상태, 목적지·경유지 설정 요청 | 방장 목적지 공유, 각 차 내비 반영, 차량별 ETA |
 | FusedLocation 1.1.3 | 필수 | latitude, longitude, altitude, heading, confidence, timestampMillis | 동의한 차량의 위치·방향, 갱신 시각 |
 | TextToSpeech 3.3.1 | 후속 검토 · 현재 미사용 | 앱이 만든 짧은 문장을 차량 오디오로 재생 | 경유지 변경·적용 결과·출발 준비 안내 후보 |
 | SpeechToText 3.3.1 | 핵심 연동 후 확장 | 차량 마이크 발화를 텍스트로 반환 | ‘쉬고 싶어’, ‘확인’ 등 고정 의도를 앱 코드가 해석 |
@@ -27,7 +27,7 @@ Pleos 패키지 저장소는 `https://nexus-playground.pleos.ai/repository/maven
 
 | 기능 | API·콜백 | 데이터와 처리 |
 |---|---|---|
-| 리더 목적지 읽기 | `getDestinationInfo()` → `onDestinationInfo()` | name, address, latitude/longitude, display 좌표, poiId, poiSubId, poiProvider |
+| 방장 목적지 읽기 | `getDestinationInfo()` → `onDestinationInfo()` | name, address, latitude/longitude, display 좌표, poiId, poiSubId, poiProvider |
 | 변경 감지 | `onDestinationChanged()` | 이벤트 후 목적지·안내 상태 재조회. 이벤트 자체만으로 새 계획을 만들지 않음 |
 | 다른 차량 목적지 설정 | `requestRoute(RouteInfo)` | 각 차량 앱이 자신의 순정 내비에 요청. 서버가 차량 내비를 직접 제어하는 API가 아님 |
 | 목적지+경유지 반영 | `requestRouteWithWaypoints(RouteWithWaypointsRequest)` | 최종 목적지와 개인·공동 경유지를 합성한 순서 있는 요청 |
@@ -44,7 +44,7 @@ Pleos 패키지 저장소는 `https://nexus-playground.pleos.ai/repository/maven
 
 `RouteInfo`에는 latitude, longitude, poiName, poiId, address, poiSubId가 필요하다. `poiProvider`도 보존한다. 조회 모델의 poiSubId는 nullable인데 요청 모델은 String이다. null을 임의로 `0` 또는 빈 문자열로 바꿔 항상 성공한다고 가정하지 않는다.
 
-초기 장소 입력은 리더의 현재 순정 목적지·경유지, 순정 즐겨찾기·최근 목적지로 시작한다. 이 정보의 POI 식별자를 그대로 보존하고 각 내비 공급원에서 읽기→쓰기 호환성을 시험한다. 외부 지도에서 받은 TMAP POI ID를 현대 POI ID로 쓰지 않는다.
+초기 장소 입력은 방장의 현재 순정 목적지·경유지, 순정 즐겨찾기·최근 목적지로 시작한다. 이 정보의 POI 식별자를 그대로 보존하고 각 내비 공급원에서 읽기→쓰기 호환성을 시험한다. 외부 지도에서 받은 TMAP POI ID를 현대 POI ID로 쓰지 않는다.
 
 좌표만 있는 장소의 등록 허용 여부는 M0에서 시험한다. 미검증이면 `좌표만으로 자동 등록 가능`이라고 표시하지 않는다. 픽업 추천 역시 순정 내비 연결까지 확인된 후보만 자동 적용 대상으로 둔다.
 

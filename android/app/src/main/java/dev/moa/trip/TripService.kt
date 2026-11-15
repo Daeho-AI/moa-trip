@@ -16,7 +16,7 @@ class TripService: Service() {
         manager.createNotificationChannel(NotificationChannel("trip","진행 중 여행",NotificationManager.IMPORTANCE_LOW))
         val open=PendingIntent.getActivity(this,0,Intent(this,MainActivity::class.java),PendingIntent.FLAG_IMMUTABLE)
         startForeground(7301,Notification.Builder(this,"trip").setSmallIcon(android.R.drawable.ic_dialog_map)
-            .setContentTitle("모아트립 여행 중").setContentText("일행 위치·도착 시간 공유 · 목적지는 확인 후 변경").setContentIntent(open).setOngoing(true).build())
+            .setContentTitle("모아트립 여행 중").setContentText("일행 위치·도착 시간 공유 · 목적지는 동의 후 변경").setContentIntent(open).setOngoing(true).build())
     }
     override fun onBind(intent: Intent?): IBinder?=null
     override fun onStartCommand(intent: Intent?,flags: Int,startId: Int): Int=START_NOT_STICKY

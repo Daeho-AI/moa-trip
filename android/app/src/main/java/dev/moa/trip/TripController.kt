@@ -187,7 +187,7 @@ class TripController(private val context: Context,private val scope: CoroutineSc
         check(nativeFresh(native) && native.uxCanConfirm) { "내비와 차량 상태를 확인한 뒤 다시 선택하세요" }
         check(promptStillValid(prompt,latest.room,currentRoute(native))) { "목적지 또는 내 경로가 바뀌었습니다. 다시 확인하세요" }
         if(prompt.kind=="LEADER") {
-            check(latest.self.leader) { "리더만 변경 요청을 보낼 수 있습니다" }
+            check(latest.self.leader) { "방장만 변경 요청을 보낼 수 있습니다" }
             if(approve) {
                 api.request("PUT","/v1/rooms/${prompt.roomId}/plan",JSONObject().put("leaderConfirmed",true)
                     .put("expectedPlanRevision",prompt.revision).put("hostEpoch",prompt.hostEpoch)
@@ -256,7 +256,7 @@ class TripController(private val context: Context,private val scope: CoroutineSc
         var native=gateway.state.value
         check(nativeFresh(native) && native.uxCanConfirm && promptStillValid(prompt,latest.room,currentRoute(native))) { "요청 또는 내 경로가 바뀌었습니다. 다시 확인하세요" }
         if(prompt.isLeader) {
-            check(latest.self.leader) { "리더만 요청할 수 있습니다" }
+            check(latest.self.leader) { "방장만 요청할 수 있습니다" }
             if(approve) {
                 api.request("PUT","/v1/rooms/${prompt.roomId}/stop-proposal",JSONObject()
                     .put("leaderConfirmed",true).put("planRevision",prompt.revision).put("hostEpoch",prompt.hostEpoch)

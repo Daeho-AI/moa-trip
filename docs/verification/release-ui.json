@@ -1,50 +1,23 @@
 {
-  "version": "0.5.0",
-  "apk_sha256": "bf818705f3168b08a1bce5dcf0d273245b8c12de4179957156b093794fcdac07",
-  "video_sha256": "9fcd5ce9fa93f82fe1cb2bd473ef0d229b8e0ea22963be11be0779aa44d842d5",
-  "video_seconds": 168.47,
+  "apk_sha256": "77bdcae018a121dd347e8769eebfc448dfa431c74dc8cfeae37b29abc05d912d",
+  "video_sha256": "d02a8df311c4f9a945b474564ffab03a045f59619ad31efeafc4789cf3e9eae2",
+  "video_seconds": 171.0,
   "video_pixels": "2560x1200",
-  "video_fps": 30,
-  "video_bytes": 3869717,
+  "video_fps": 30.0,
+  "video_bytes": 3910038,
   "public_player": "https://daeho-ai.github.io/moa-trip/",
-  "native_search_matching": {
-    "source": {
-      "latitude": 37.41289678,
-      "longitude": 127.09383464,
-      "name": "42dot",
-      "address": "수정구 시흥동",
-      "poiId": "36khp37hh8gqcm5nqhe5",
-      "poiSubId": null,
-      "poiProvider": "",
-      "displayLatitude": null,
-      "displayLongitude": null,
-      "waypointBinding": "COORDINATES"
-    },
-    "recipient": {
-      "latitude": 37.41289678,
-      "longitude": 127.09383464,
-      "name": "42dot",
-      "address": "수정구 시흥동",
-      "poiId": "36khp37hh8gqcm5nqhe5",
-      "poiSubId": null,
-      "poiProvider": "",
-      "displayLatitude": null,
-      "displayLongitude": null,
-      "waypointBinding": "COORDINATES"
-    },
-    "exact_match": true
-  },
   "release_ui_checks": [
-    "actual room creation, invitation and sharing settings on signed v0.5.0 release APK",
-    "leader and recipient approve destination through actual native heads-up actions",
+    "actual room creation, invitation and sharing settings on signed release APK",
+    "room host and participant approve destination through actual native heads-up actions",
     "both cars share current location and native ETA",
-    "leader adds Semiwon in native navigation and publishes a waypoint proposal",
-    "recipient approves waypoint in native heads-up; both apps show waypoint reflection confirmed while final destination remains Dumulmeori parking",
-    "later Yangpyeong museum destination change declined; participant keeps Dumulmeori parking and its existing stop",
-    "17 edited scenes reviewed; opening second caption removed; full ffmpeg decode passed"
+    "host adds Semiwon in native navigation and proposes a shared stop",
+    "participant approves stop; both apps show 경유지 추가 완료 with final destination 두물머리주차장",
+    "participant declines 양평군립미술관 and retains original destination and stop",
+    "role headings and actual app labels use 방장 차량 / 참여 차량",
+    "all 17 scenes visually reviewed; full ffmpeg decode passed"
   ],
   "release_debuggable": false,
   "recording_invite_visible": true,
   "recording_invites_expired_after_capture": true,
-  "scope": "Park-state actual release APK recording on two emulators. GPS is test input. Drive 30 km/h is separately verified in debug SDK checks."
+  "scope": "Park-state actual release APK recording on two emulators. GPS is test input. Drive 30 km/h is separately verified in functional SDK checks."
 }

@@ -1,8 +1,8 @@
 # 모아트립 구조와 동기화 계약
 
-**v0.4 우선 규칙:** 리더의 공유 확인과 각 차량의 목적지 변경 확인이 매번 필요하다. 이전 자동 따라가기 동의로 내비를 쓰지 않는다. 현재 화면·동작은 [REVIEW_02](REVIEW_02.md)와 [IMPLEMENTATION](IMPLEMENTATION.md)을 따른다. 나머지 확장 설계는 구현 완료를 뜻하지 않는다.
+**구현 기준:** 방장의 공유 확인과 각 차량의 목적지 변경 확인이 매번 필요하다. 이전 자동 따라가기 동의로 내비를 쓰지 않는다. 현재 화면·동작은 [REVIEW_02](REVIEW_02.md)와 [IMPLEMENTATION](IMPLEMENTATION.md)을 따른다. 나머지 확장 설계는 구현 완료를 뜻하지 않는다.
 
-v0.2 · 사용자 관점 보정. 제품 계약이며 실행 완료 명세가 아니다.
+사용자 관점 보정. 제품 계약이며 실행 완료 명세가 아니다.
 
 0.3의 실제 구현은 app/core 모듈, SharedPreferences+Keystore, FastAPI+SQLite+WebSocket으로 첫 목적지/위치/ETA 흐름을 만든다. 아래 전체 구조 중 구현한 부분과 차이는 [IMPLEMENTATION.md](IMPLEMENTATION.md)를 따른다.
 
@@ -10,8 +10,8 @@ v0.2 · 사용자 관점 보정. 제품 계약이며 실행 완료 명세가 아
 
 ```mermaid
 flowchart LR
-  A[리더 순정 내비] <--> B[NaviHelper 어댑터]
-  B <--> C[리더 모아트립]
+  A[방장 순정 내비] <--> B[NaviHelper 어댑터]
+  B <--> C[방장 모아트립]
   C <--> S[여행방 서버]
   S <--> D[참여 차량 모아트립]
   D <--> N[각 차량 NaviHelper]
@@ -33,7 +33,7 @@ Android는 Kotlin·Jetpack Compose·Coroutines·Room·OkHttp를 사용한다. SD
 | 모듈 | 책임 |
 |---|---|
 | core-model | PlaceRef, RoomPlan, PersonalPlan, Telemetry, SyncReceipt, PickupJob |
-| core-sync | 리더 변경 감지, 계획 버전, 개인 경유지 합성, 충돌·재연결 |
+| core-sync | 방장 변경 감지, 계획 버전, 개인 경유지 합성, 충돌·재연결 |
 | core-pickup | 시간 계산, 걷기·대기 필터, 후보 순위 |
 | platform-pleos | NaviHelper·FusedLocation·TTS·AAOS 어댑터 |
 | data-room | 서버 인증·WebSocket·복구·Room 캐시 |
@@ -69,22 +69,22 @@ SDK 호출은 Activity 안에 흩뿌리지 않는다. 여행 세션 컨트롤러
 | MeetingCommit | place, meetingVersion, passengerConsent, driverConfirm, nativeAppliedAt?, navigationState, walkingStartedAt? |
 | AssemblySummary | placeRef, visitEpoch, expectedCount, knownCount, pendingChoiceCount, missingMemberIds, status, latestKnownArrival? |
 
-서버의 planRevision은 공동 목적지/경유지를 바꿀 때만 증가한다. 위치 전송으로 증가하지 않는다. roomRevision은 멤버십 등 방 구조를, hostEpoch는 리더 변경을 구분한다. 개인 픽업은 그 차량의 personalRevision만 증가시킨다.
+서버의 planRevision은 공동 목적지/경유지를 바꿀 때만 증가한다. 위치 전송으로 증가하지 않는다. roomRevision은 멤버십 등 방 구조를, hostEpoch는 방장 변경을 구분한다. 개인 픽업은 그 차량의 personalRevision만 증가시킨다.
 
-## 4. 리더 변경 → 차량별 내비 적용
+## 4. 방장 변경 → 차량별 내비 적용
 
 ### 최초 진입과 동의
 
-- 방 생성 시 현재 순정 목적지를 조회해 리더가 여행 목적지로 확인하면 첫 RoomPlan을 게시한다. 목적지가 없으면 ‘리더 목적지 대기’ 상태다. 변경 이벤트가 발생해야만 초기화되는 구조를 쓰지 않는다.
+- 방 생성 시 현재 순정 목적지를 조회해 방장이 여행 목적지로 확인하면 첫 RoomPlan을 게시한다. 목적지가 없으면 ‘방장 목적지 대기’ 상태다. 변경 이벤트가 발생해야만 초기화되는 구조를 쓰지 않는다.
 - 늦은 참여·앱 복귀는 현재 snapshot을 읽는다. 새 목적지를 적용하려면 해당 roomId/hostEpoch/revision과 당시 개인 경로에 묶인 확인이 필요하다. 저장된 accepted 값이나 기존 FollowGrant는 SDK 쓰기 권한이 아니다. 이미 같은 목적지이면 쓰기 없이 일치 상태를 표시한다.
-- 위치·ETA 공유와 목적지 변경 승인은 독립적이다. v0.2의 destinationEnabled/sharedStopsEnabled 자동 따라가기 계약은 폐기했으며 남아 있는 데이터 모델은 호환·확장 참고용이다.
+- 위치·ETA 공유와 목적지 변경 승인은 독립적이다. 초기 설계의 destinationEnabled/sharedStopsEnabled 자동 따라가기 계약은 폐기했으며 남아 있는 데이터 모델은 호환·확장 참고용이다.
 - 모든 목적지 적용은 이번 요청에 한정한다. 거절은 서버에 기록하고, 다시 검토하려면 사용자가 ‘목적지 다시 확인’을 선택한다.
 - 출발 전 확인한 공동 경유지는 자동 반영 동의를 쓸 수 있다. 주행 중 도입된 공동 경유지는 StopDecision=GO가 되기 전에는 합성에서 제외한다. 누가 지나쳤는지 SDK가 항상 판정해 준다고 가정하지 않는다.
 
 ### 변경 처리
 
-1. 리더 앱이 `onDestinationChanged`를 받는다. 목적지와 상태를 다시 읽고 2초 동안 변경을 모은다. leaderBroadcastEnabled이며 실제 목적지가 있을 때 리더에게 공유 확인을 표시한다. 승인 전에는 게시하지 않는다. null·안내 취소·도착은 공동 계획 삭제 사건이 아니다.
-2. 리더가 승인하면 `PUT /rooms/{id}/plan`으로 leaderConfirmed=true, expectedPlanRevision, hostEpoch, 새 목적지를 보낸다. 서버는 현재 리더인지 확인하고 트랜잭션에서 revision을 1 증가시킨다. 동일 idempotencyKey 요청은 같은 결과를 돌려준다.
+1. 방장 앱이 `onDestinationChanged`를 받는다. 목적지와 상태를 다시 읽고 2초 동안 변경을 모은다. leaderBroadcastEnabled이며 실제 목적지가 있을 때 방장에게 공유 확인을 표시한다. 승인 전에는 게시하지 않는다. null·안내 취소·도착은 공동 계획 삭제 사건이 아니다.
+2. 방장이 승인하면 `PUT /rooms/{id}/plan`으로 leaderConfirmed=true, expectedPlanRevision, hostEpoch, 새 목적지를 보낸다. 서버는 현재 방장인지 확인하고 트랜잭션에서 revision을 1 증가시킨다. 동일 idempotencyKey 요청은 같은 결과를 돌려준다.
 3. 서버가 최신 계획을 전달한다. 참여 차량은 목적지와 자기 내비 상태를 확인하고 변경 확인 창을 표시한다. 무응답·거절이면 내비를 쓰지 않는다.
 4. RoomPlan·PersonalPlan·StopDecision·VisitProgress를 합성한다. GO이며 방문 전인 공동 장소와 완료 전 개인 경유지만 넣는다. 확정 픽업 장소와 본인의 routeOption을 유지한다. 경유지가 2개를 넘으면 CAPACITY_CONFLICT, 개인/공동 간 순서가 정해지지 않았으면 ORDER_REVIEW로 멈춘다.
 5. 승인된 구조적 nativeFingerprint와 실제 내비를 비교한다. 목적지·경유지의 수동 변경은 LOCAL_OVERRIDE다. ETA·재탐색·도로 경로·경로 옵션 변화와 확인된 경유지 통과는 구조적 변경으로 취급하지 않는다. 원인이 불명확하면 확인을 요청하고 쓰지 않는다.
@@ -96,7 +96,7 @@ WRITE_UNCERTAIN 해제에는 M0에서 검증한 ‘이전 요청 종료 확인�
 
 콜백이 늦게 와도 APPLIED는 현재 targetHash와 실제 읽기 결과가 일치할 때만 인정한다. 과거 요청의 오류는 현재 요청의 실패로 무조건 연결하지 않고 현재 내비를 재확인한다. 완료된 과거 버전이 최신 버전 위에 덮이는 경우에도 현재 snapshot과 비교해 충돌로 표시한다.
 
-리더의 destination/stop 변화만 서버에 게시하며 수신 차량의 적용 콜백은 리더 이벤트로 재방송하지 않는다. 이것이 동기화 순환을 막는다. 호스트가 끊겼다고 자동으로 새 리더를 선출하지 않는다. 명시적 양도 시 hostEpoch를 올리고 기존 자동 동기화 동의는 새 리더 확인 전까지 멈춘다.
+방장의 destination/stop 변화만 서버에 게시하며 수신 차량의 적용 콜백은 방장 이벤트로 재방송하지 않는다. 이것이 동기화 순환을 막는다. 호스트가 끊겼다고 자동으로 새 방장을 선출하지 않는다. 명시적 양도 시 hostEpoch를 올리고 기존 자동 동기화 동의는 새 방장 확인 전까지 멈춘다.
 
 ## 5. 상태와 사용자 표시
 
@@ -114,22 +114,22 @@ WRITE_UNCERTAIN 해제에는 M0에서 검증한 ‘이전 요청 종료 확인�
 | WRITE_UNCERTAIN | 반영 결과 확인 중 | 추가 쓰기 중단, 이전 요청 종료와 현재 상태 확인 |
 | ORDER_REVIEW | 경유 순서 선택 필요 | 개인 픽업과 공동 장소의 앞뒤 순서 확인 |
 | PROGRESS_UNCERTAIN | 방문 상태 확인 필요 | 모호한 도착/경유지 소멸을 확인할 때까지 경로 쓰기 보류 |
-| PENDING_PLAN_REVIEW | 일행에게 공유할 계획 확인 중 | 리더가 새 목적지와 기존 공동 경유지를 함께 정리 |
+| PENDING_PLAN_REVIEW | 일행에게 공유할 계획 확인 중 | 방장이 새 목적지와 기존 공동 경유지를 함께 정리 |
 | FAILED | 반영 실패 | 확정된 오류만, 현재 안내 확인 후 허용되는 복구 |
 | ARRIVED | 도착 신호 확인 | 현재 적용 경로·방문 회차와 연결 가능한 이벤트만 인정 |
 
-방 탈퇴·종료 시 미래 동기화를 중단한다. 이미 설정된 순정 경로를 자동 취소하거나 이전 경로로 되돌리지 않는다. ‘나는 여행 종료’와 리더의 ‘전체 종료’를 분리한다. 전체 종료 확인 화면에는 남은 차량·활성 픽업 수가 보이며, 제출 시 expectedRoomRevision/expectedPlanRevision으로 다시 검사한다. 진행 상태가 달라졌으면 409로 갱신한다.
+방 탈퇴·종료 시 미래 동기화를 중단한다. 이미 설정된 순정 경로를 자동 취소하거나 이전 경로로 되돌리지 않는다. ‘나는 여행 종료’와 방장의 ‘전체 종료’를 분리한다. 전체 종료 확인 화면에는 남은 차량·활성 픽업 수가 보이며, 제출 시 expectedRoomRevision/expectedPlanRevision으로 다시 검사한다. 진행 상태가 달라졌으면 409로 갱신한다.
 
 ### 경유지 진행과 순서
 
 - PlaceRef + visitEpoch로 같은 장소의 재방문과 첫 방문을 구분한다. 개인 픽업도 고유 방문 참조를 쓴다. 완료 기록은 실제 이동 이력이 아닌 최소 진행 상태다.
 - WaypointArrivedInfo는 index/name/address 등이며 방의 stopId·planRevision을 반환하지 않는다. 직전 APPLIED 경로의 인덱스 매핑, 현재 경로 재조회와 가능한 증거를 함께 사용한다. 요청 진행 중·일치 불명확 시 PROGRESS_UNCERTAIN으로 두고 사용자가 확인한다. FIRST를 항상 첫 공동 휴게소라고 간주하지 않는다.
-- 정상 통과가 확인되면 해당 방문을 COMPLETED로 기록하고, 재접속·리더 변경 뒤에도 이 참조를 다시 합성하지 않는다. 승객 탑승 완료와 SDK 경유지 통과는 별도 상태다.
+- 정상 통과가 확인되면 해당 방문을 COMPLETED로 기록하고, 재접속·방장 변경 뒤에도 이 참조를 다시 합성하지 않는다. 승객 탑승 완료와 SDK 경유지 통과는 별도 상태다.
 - waypointOrderRefs에는 개인·공동 방문 참조의 승인된 전체 순서를 저장한다. 누락/중복 참조를 허용하지 않는다. 개인 경유지가 있을 때 새 공동 장소가 들어오거나 공동 순서가 바뀌면 먼저 순서를 정한다. 개인 경유지가 없으면 RoomPlan의 공동 순서를 따른다.
 - 공동 장소의 좌표/출입구 변경 또는 명시적 재방문만 새 visitEpoch를 만든다. ETA 갱신·무관한 최종 목적지 수정은 준비 상태를 초기화하지 않는다. 새 참가자는 준비 미응답이며 기존 참가자의 응답을 이어받지 않는다.
 - ‘모두 준비’는 GO인 모든 차량이 이번 visitEpoch에 READY이고 도착/현재 참여 확인이 유효할 때만 표시한다. PENDING, 미도착, 연결 끊김, 철회한 응답이 있으면 전체 준비로 요약하지 않는다.
 - READY는 10분 뒤 재확인이 필요하다. 위치 공유를 끈 사람도 최근 본인/연결된 동승자 확인과 연결 상태로 참여를 표시할 수 있으며, 이 경우 ‘참여자 확인’ 출처를 쓴다. 과거 SDK 도착 사건 하나로 현재도 그 장소에 있다고 단정하지 않는다.
-- FINISHED는 공유/따라가기를 종료한 멤버 상태이며 물리적 삭제가 아니다. 본인에게 활성 픽업이 있으면 먼저 탑승 완료 또는 픽업 취소를 처리한다. 리더가 ‘나는 여행 종료’를 누르면 목적지 방송도 멈추지만 방 관리 권한은 남는다. 리더의 완전 탈퇴는 명시적 양도 또는 전체 종료 후에만 허용한다. 잠깐 오프라인인 사람을 FINISHED로 자동 전환하지 않는다. FINISHED는 집결 대상에서 제외하고 차량 카드에는 본인이 종료한 상태를 남긴다.
+- FINISHED는 공유/따라가기를 종료한 멤버 상태이며 물리적 삭제가 아니다. 본인에게 활성 픽업이 있으면 먼저 탑승 완료 또는 픽업 취소를 처리한다. 방장이 ‘나는 여행 종료’를 누르면 목적지 방송도 멈추지만 방 관리 권한은 남는다. 방장의 완전 탈퇴는 명시적 양도 또는 전체 종료 후에만 허용한다. 잠깐 오프라인인 사람을 FINISHED로 자동 전환하지 않는다. FINISHED는 집결 대상에서 제외하고 차량 카드에는 본인이 종료한 상태를 남긴다.
 
 ## 6. ETA와 위치의 일관성
 
@@ -150,16 +150,16 @@ WRITE_UNCERTAIN 해제에는 M0에서 검증한 ‘이전 요청 종료 확인�
 | 요청 | 권한·주요 내용 |
 |---|---|
 | POST /v1/device-sessions | 무작위 장치 세션 발급, 발급 빈도 제한 |
-| POST /v1/rooms | 방 생성, 리더와 만료시간 |
+| POST /v1/rooms | 방 생성, 방장과 만료시간 |
 | POST /v1/rooms/join | 초대 코드 확인, 최대 차량 수 검사 |
-| POST /v1/rooms/{id}/invites | 리더가 초대 코드 재발급, 이전 코드 폐기 |
+| POST /v1/rooms/{id}/invites | 방장이 초대 코드 재발급, 이전 코드 폐기 |
 | GET /v1/rooms/{id} | 현재 멤버십에 맞는 snapshot |
 | PUT /v1/rooms/{id}/grants/me | 본인의 공유·자동 동기화 선택 |
-| PUT /v1/rooms/{id}/plan | 현재 리더, expectedPlanRevision·hostEpoch |
+| PUT /v1/rooms/{id}/plan | 현재 방장, expectedPlanRevision·hostEpoch |
 | PUT /v1/rooms/{id}/personal-plan/me | 본인의 개인 경유지·승인 순서, 경유지 수·확정 픽업 보존 검사 |
 | PUT /v1/rooms/{id}/stops/{stopId}/decision/me | 이번 visitEpoch의 GO/SKIP 선택, 순서 확인 |
 | PUT /v1/rooms/{id}/progress/me | 본인 방문 진행 보고, 매칭 경로·근거 |
-| PUT /v1/rooms/{id}/leader-broadcast | 리더의 목적지 게시 일시중지/재개, 재개 시 목적지 확인 |
+| PUT /v1/rooms/{id}/leader-broadcast | 방장의 목적지 게시 일시중지/재개, 재개 시 목적지 확인 |
 | PUT /v1/rooms/{id}/telemetry/me | 본인 표본·증가 sequence, 공유 동의 검사 |
 | PUT /v1/rooms/{id}/sync-status/me | 자신의 결과, 대상 revision·targetHash |
 | POST /v1/rooms/{id}/messages | 허용 프리셋만, 차량/방 전송 상한 |
@@ -167,9 +167,9 @@ WRITE_UNCERTAIN 해제에는 M0에서 검증한 ‘이전 요청 종료 확인�
 | POST /v1/rooms/{id}/host-transfer | 명시적 양도, hostEpoch 증가 |
 | POST /v1/rooms/{id}/members/me/finish | 본인 공유·따라가기 종료, 다른 차량 여행 유지 |
 | DELETE /v1/rooms/{id}/members/me | 탈퇴·공유 데이터 제거 |
-| POST /v1/rooms/{id}/close | 리더 종료, 이후 이벤트·위치 전달 중지 |
-| POST /v1/rooms/{id}/extend | 리더가 방 기간 연장, 개인 grant 만료시간은 유지 |
-| PUT /v1/rooms/{id}/meeting-point | 리더가 만남 핀·입구 설명 공유, roomRevision 변경, 자동 내비 쓰기 없음 |
+| POST /v1/rooms/{id}/close | 방장 종료, 이후 이벤트·위치 전달 중지 |
+| POST /v1/rooms/{id}/extend | 방장이 방 기간 연장, 개인 grant 만료시간은 유지 |
+| PUT /v1/rooms/{id}/meeting-point | 방장이 만남 핀·입구 설명 공유, roomRevision 변경, 자동 내비 쓰기 없음 |
 | POST /v1/rooms/{id}/companion-pairings | 차량 소유 세션이 동승자 웹 1회 연결 승인 |
 | POST /v1/rooms/{id}/pickups | 해당 차량의 픽업 건·승객 초대 링크 생성 |
 | POST /v1/pickups/{id}/accept-invite | 초대 링크를 픽업 전용 승객 세션으로 교환 |
